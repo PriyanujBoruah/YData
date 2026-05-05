@@ -220,7 +220,7 @@ window.openWorkspaceItem = async (itemId) => {
             msgDiv.innerHTML = `
                 <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
                 <div class="bubble w-full">
-                    <div class="flex items-center gap-2 mb-4 p-2.5 bg-blue-50 border border-blue-100 rounded-lg text-blue-700 text-xs font-bold w-fit">
+                    <div class="workspace-export-header flex items-center gap-2 mb-4 p-2.5 bg-blue-50 border border-blue-100 rounded-lg text-blue-700 text-xs font-bold w-fit">
                         <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
                         Shared from Workspace: ${data.title}
                     </div>
