@@ -155,17 +155,17 @@ body { background: var(--bg); color: var(--text); }
     font-size: 14px;
 }
 
-.switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+.switch { position: relative; display: inline-block; width: 32px; height: 16px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
     position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
     background-color: #ccc; transition: .4s; border-radius: 20px;
 }
 .slider:before {
-    position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+    position: absolute; content: ""; height: 10px; width: 10px; left: 3px; bottom: 3px;
     background-color: white; transition: .4s; border-radius: 50%;
 }
-input:checked + .slider { background-color: #0b57d0; }
+input:checked + .slider { background-color: #1f1f1f; }
 input:checked + .slider:before { transform: translateX(14px); }
 
 /* Chat Area */
@@ -422,7 +422,7 @@ textarea {
 }
 
 .sidebar-header { display: flex; align-items: center; padding: 15px; gap: 10px; }
-.sidebar-title { font-weight: 600; opacity: 1; transition: opacity 0.2s; }
+.sidebar-title { font-weight: 600; opacity: 1; transition: opacity 0.2s; font-size: small; }
 .sidebar.collapsed .sidebar-title { opacity: 0; }
 
 /* --- SIDEBAR SCROLLING FIX --- */
@@ -1684,6 +1684,11 @@ html, body {
     flex-direction: column;
 }
 
+.modal-body .form-group {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
 body {
     display: flex;
     flex-direction: row; /* Sidebar left, Main right */
@@ -1929,48 +1934,6 @@ main {
 
 
 
-
-
-.persona-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 15px;
-}
-
-.persona-card {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border: 2px solid transparent;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.persona-card:hover {
-    background: #ffffff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border-color: #e3e3e3;
-}
-
-.persona-card.active {
-    background: #ffffff;
-    border-color: #6002ee;
-    box-shadow: 0 4px 15px rgba(11, 87, 208, 0.1);
-}
-
-.persona-icon {
-    width: 45px; height: 45px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 12px;
-    flex-shrink: 0;
-}
-
-.persona-info { display: flex; flex-direction: column; }
-.persona-info strong { font-size: 14px; color: #1f1f1f; }
-.persona-info span { font-size: 11px; color: #70757a; }
 
 
 
@@ -2620,9 +2583,9 @@ main {
     align-items: flex-start;
     gap: 12px;
     padding: 20px;
-    background: #f8f9fa;
+    background: #ffffff;
     border: 2px solid transparent;
-    border-radius: 24px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -2634,9 +2597,19 @@ main {
 }
 
 .persona-card.active {
-    background: #ffffff;
-    border-color: #6002ee;
-    box-shadow: 0 4px 15px rgba(11, 87, 208, 0.15);
+    background-color: #ffffff;
+    transform-style: preserve-3d;
+}
+
+.persona-card.active::before {
+    content: "";
+    position: absolute; 
+    inset: 0px;
+    background: conic-gradient(from 90deg at 40% -25%, #ffd700, #f79d03, #ee6907, #e6390a, #de0d0d, #d61039, #cf1261, #c71585, #cf1261, #d61039, #de0d0d, #ee6907, #f79d03, #ffd700, #ffd700, #ffd700);
+    filter: blur(10px);
+    transform: translate3d(0px,0px,-1px);
+    border-radius: inherit;
+    pointer-events: none;
 }
 
 .persona-icon-title {
@@ -2659,7 +2632,7 @@ main {
 
 /* Discovery Banner */
 .discovery-card {
-    background: linear-gradient(135deg, #e8f0fe 0%, #fce8e6 100%);
+    background: transparent;
     border-radius: 24px;
     padding: 30px;
     display: flex;
@@ -2667,6 +2640,19 @@ main {
     align-items: center;
     gap: 30px;
     flex-shrink: 0; /* Ensures it doesn't get squashed */
+    transform-style: preserve-3d;
+}
+
+.discovery-card::before {
+    content: "";
+    position: absolute; 
+    inset: 0px;
+    background: linear-gradient(60deg, #4285f4, #d96570, #9b51e0, #34a853, #4285f4);
+    background-size: 300% 300%;
+    border-radius: 26px;
+    filter: blur(14px);
+    opacity: 0.5;
+    animation: auroraShift 8s ease-in-out infinite;
 }
 
 @media (max-width: 600px) {
@@ -3115,7 +3101,7 @@ main {
 }
 
 .brand-logo {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 500;
     color: #444746;
 }
@@ -4256,20 +4242,23 @@ button {
 
 /* 2. Primary Action Buttons (Solid Pill) */
 .primary-btn {
-    background-color: #0b57d0; /* Gemini Blue */
-    color: #ffffff;
-    font-size: 14px;
+    background: transparent;
+    color: #1f1f1f;
+    font-size: 12px;
     font-weight: 500;
-    padding: 12px 24px;
-    border-radius: 28px; /* High rounding */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    width: 100%;
+    padding: 6px 12px;
+    border-radius: 6px; /* High rounding */
+    border: 2px solid #e3e8ef;
+    width: auto;
 }
 
 .primary-btn:hover {
-    background-color: #0842a0;
-    box-shadow: 0 4px 12px rgba(11, 87, 208, 0.2);
-    transform: translateY(-1px);
+    background-color: #e3e8ef;
+}
+
+.primary-btn svg {
+    width: 16px !important;
+    height: 16px !important;;
 }
 
 .primary-btn:active {
@@ -4551,6 +4540,17 @@ input[type="radio"]:focus {
 .modal-header {
     display: flex;
     justify-content: space-between;
+}
+
+.modal-header h3 {
+    margin-top: 10px !important;
+}
+
+.modal-footer {
+    padding-right: 20px;
+    padding-left: 20px;
+    display: flex;
+    justify-content: flex-end;
 }
 
 
@@ -4908,17 +4908,17 @@ input[type="radio"]:focus {
     align-items: center;
     gap: 8px;
     padding: 8px 16px;
-    border-radius: 20px;
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
     color: #5f6368;
-    background: #f1f3f4;
+    background: transparent;
     transition: all 0.2s;
 }
 
 .filter-pill.active {
-    background: #0b57d0;
-    color: white;
+    background: #e3e8ef;
+    color: #1f1f1f;
 }
 
 #workspace-content-grid {
@@ -4938,8 +4938,6 @@ input[type="radio"]:focus {
     transition: transform 0.2s;
     cursor: pointer;
 }
-
-.workspace-card:hover { transform: translateY(-3px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
 .workspace-card img {
     border-radius: 100%;
@@ -5000,7 +4998,6 @@ input[type="radio"]:focus {
 
 .workspace-card:hover { 
     transform: translateY(-3px); 
-    box-shadow: 0 8px 16px rgba(0,0,0,0.06); 
 }
 
 .card-header {
