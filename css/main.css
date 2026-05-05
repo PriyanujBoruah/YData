@@ -1,6 +1,6 @@
 /* css/main.css */
 :root {
-    --bg-color: #ffffff;
+    --bg-color: #cbdceb1f;
     --pill-bg: #e8f0fe;
     --text-main: #1f1f1f;
     --accent: #0b57d0;
@@ -25,7 +25,7 @@ body {
 
 /* Theme Variables */
 :root {
-    --bg: #ffffff;
+    --bg: #cbdceb1f;
     --text: #1f1f1f;
     --border: #e3e3e3;
     --sidebar-bg: #f8f9fa;
@@ -46,6 +46,7 @@ body { background: var(--bg); color: var(--text); }
 .sidebar-footer {
     margin-top: auto; /* Pushes to bottom */
     padding: 10px;
+    border-top: 1px solid #e3e3e3;
 }
 
 .settings-menu {
@@ -175,7 +176,6 @@ input:checked + .slider:before { transform: translateX(14px); }
     flex-direction: column; 
     height: 100vh;
     overflow: hidden; /* Prevents the whole page from scrolling */
-    background: var(--bg);
 }
 
 /* The Scrollable Middle Area */
@@ -186,10 +186,26 @@ input:checked + .slider:before { transform: translateX(14px); }
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin-right: 10px;
+    margin-left: 10px;
 }
 
-#intro-screen { margin-top: 15vh; text-align: left; width: 100%; max-width: 700px; }
-h1 { font-weight: 600; font-size: 28px; margin-bottom: 0; background: linear-gradient(to right, #6002ee, #a8bab9, #0079ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+#chat-history-container::-webkit-scrollbar {
+    width: 4px;
+}
+#chat-history-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+#chat-history-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* Subtle gray */
+    border-radius: 4px;
+}
+#chat-history-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* Darker gray on hover */
+}
+
+#intro-screen { text-align: left; width: 100%; max-width: 700px; }
+h1 { font-weight: 600; font-size: 28px; margin-bottom: 0; }
 h2 { font-weight: 600; font-size: 40px; color: #c4c7c5; margin-top: 5px; }
 
 .chip {
@@ -397,9 +413,10 @@ textarea {
 
 
 .sidebar {
-    width: 260px; height: 100vh; background: #f8f9fa;
+    width: 260px; height: 100vh; background: #F9FBFD;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0; display: flex; flex-direction: column;
+    border: 1px solid #e3e3e3;
 }
 
 .sidebar.collapsed { width: 64px; }
@@ -421,7 +438,7 @@ textarea {
     padding: 10px; 
     display: flex; 
     flex-direction: column; 
-    gap: 5px; 
+    gap: 2px; 
     flex: 1;         /* Fills the gap between header and footer */
     min-height: 0;   /* CRITICAL: Prevents flex child from blowing past 100vh */
 }
@@ -489,13 +506,6 @@ textarea {
 .kratabook-item i {
     margin-top: 2px; 
     flex-shrink: 0; /* Prevents the icon from shrinking when text wraps */
-}
-
-.persona-highlight {
-    color: #6002ee !important;
-}
-.persona-highlight:hover {
-    background: #e8f0fe !important;
 }
 
 /* ========================================================
@@ -582,35 +592,9 @@ textarea {
 
 .menu-wrapper { position: relative; }
 
-.dropdown-menu {
-    position: absolute;
-    bottom: 50px; /* Appear above the bar */
-    left: 0;
-    width: 220px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid #e3e3e3;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    padding: 8px;
-    z-index: 2000;
-    display: flex;
-    flex-col: column;
-    animation: menuFadeIn 0.2s ease-out;
-}
-
 @keyframes menuFadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
-}
-
-/* Ensure the buttons stay centered when collapsed */
-.menu-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    gap: 12px;
-    white-space: nowrap; /* Prevents text wrapping */
 }
 
 .sidebar.collapsed .menu-item {
@@ -1418,12 +1402,10 @@ textarea {
 }
 
 .prose h2 {
-    color: #6002ee !important;
     font-family: 'Inter', sans-serif !important;
 }
 
 .prose h3 {
-    color: #6002ee !important;
     font-family: 'Inter', sans-serif !important;
 }
 
@@ -1447,7 +1429,7 @@ textarea {
 }
 
 .report-content.prose h1 { font-size: 2.25rem; font-weight: 800; margin-top: 2rem; margin-bottom: 1rem; color: #111827; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
-.report-content.prose h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #1f2937; }
+.report-content.prose h2 { font-size: 1.15rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #1f2937; }
 .report-content.prose h3 { font-size: 1.25rem; font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #374151; }
 .report-content.prose p { margin-bottom: 1.25rem; }
 .report-content.prose ul, .report-content.prose ol { margin-bottom: 1.25rem; padding-left: 1.5rem; }
@@ -1486,7 +1468,7 @@ textarea {
         bottom: 0;
         z-index: 9999;
         width: 280px !important;
-        background: var(--bg);
+        background: #F9FBFD;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 10px 0 30px rgba(0,0,0,0.1);
     }
@@ -1576,6 +1558,11 @@ textarea {
     .report-content {
         padding: 20px !important;
         font-size: 15px;
+    }
+
+    #kratabook-view .secondary-btn {
+        font-size: 0px !important;
+        gap: 0px !important;
     }
     
     #spreadsheet-view {
@@ -2144,7 +2131,7 @@ main {
 .sidebar-section-label {
     font-size: 10px; font-weight: 800; color: #70757a;
     text-transform: uppercase; letter-spacing: 1px;
-    padding: 20px 15px 5px;
+    padding: 20px 15px 5px; border-top: 1px solid rgb(227, 227, 227);
 }
 
 .sidebar-list { padding: 0 10px; }
@@ -2158,7 +2145,7 @@ main {
 }
 
 .kratabook-item {
-    padding: 8px 12px; border-radius: 12px; font-size: 13px;
+    padding: 6px 12px; border-radius: 12px; font-size: 13px;
     cursor: pointer; display: flex; align-items: center; gap: 10px;
     color: #444746; transition: 0.2s;
 }
@@ -2170,9 +2157,19 @@ main {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#kratabook-view .secondary-btn {
+    padding: 8px 12px;
+    max-width: min-content;
+}
+
+#kratabook-view .secondary-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 .report-content {
-    flex: 1; overflow-y: auto; padding: 40px 60px;
-    max-width: 800px; margin: 0 auto; line-height: 1.8;
+    flex: 1; overflow-y: auto; padding: 40px 10vw;
+    width: auto; margin: 0 10px; line-height: 1.8;
     font-family: 'Inter', sans-serif !important; color: #1a1a1a;
 }
 
@@ -2283,7 +2280,7 @@ main {
     font-size: 15px;
 }
 
-.bot-message strong { color: #0b57d0; }
+.bot-message strong { color: #1f1f1f; font-weight: 600; }
 
 .bot-message h1, .bot-message h2, .bot-message h3 {
     margin-top: 1.5em;
@@ -2296,7 +2293,7 @@ main {
     padding: 2px 6px;
     border-radius: 4px;
     font-family: monospace;
-    color: #d93025;
+    color: #009da8;
 }
 
 .bot-message table {
@@ -2310,7 +2307,9 @@ main {
 
 .bot-message ul { padding-left: 20px; }
 
-
+.mermaid-chart-wrapper {
+    text-align: center;
+}
 
 
 
@@ -2339,10 +2338,10 @@ main {
     bottom: 70px; /* Position above the pill */
     left: 10px;
     width: 280px;
-    background: rgba(255, 255, 255, 0.95);
+    background: #f8f9fa50;
     backdrop-filter: blur(12px);
-    border-radius: 28px !important; /* Premium rounded look */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    border-radius: 12px !important; /* Premium rounded look */
+    border: 1px solid #e3e3e3;
     padding: 12px 8px !important;
     z-index: 2000;
     display: flex;
@@ -2355,23 +2354,9 @@ main {
 }
 
 /* Unify menu items */
-.menu-item {
-    width: 100%;
-    background: transparent;
-    border: none;
-    padding: 12px 16px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    font-size: 15px;
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.2s;
-    text-align: left;
-}
 
-.menu-item:hover { background: rgba(0,0,0,0.05); }
+
+.dropdown-menu .menu-item:hover { background: rgba(0,0,0,0.05) !important; }
 [data-theme='dark'] .menu-item:hover { background: rgba(255,255,255,0.1); }
 
 .menu-item i { width: 20px; height: 20px; }
@@ -2731,7 +2716,6 @@ main {
 
 /* Data Selector Pill */
 .data-selector-pill {
-    background: rgba(0,0,0,0.05);
     border: 1px solid transparent;
     border-radius: 20px;
     padding: 6px 14px;
@@ -2746,8 +2730,8 @@ main {
 }
 
 .data-selector-pill:hover {
-    background: rgba(0,0,0,0.1);
-    border-color: #e3e3e3;
+    background: #e3e8ef;
+    border-color: #e3e8ef;
 }
 
 [data-theme='dark'] .data-selector-pill {
@@ -2987,6 +2971,7 @@ main {
     font-size: 16px;
     line-height: 1.8;
     color: #1f1f1f;
+    font-weight: 400;
 }
 
 .response-text p { margin-bottom: 16px; }
@@ -3107,7 +3092,6 @@ main {
     align-items: center;
     padding: 16px 24px;
     width: 100%;
-    background: var(--bg-color);
     flex-shrink: 0;
     box-sizing: border-box;
 }
@@ -3131,6 +3115,31 @@ main {
     font-size: 15px;
     color: #1f1f1f;
     font-weight: 500;
+}
+
+#active-persona-display {
+    background: linear-gradient(
+        to right,
+        #4285f4 20%,
+        #d96570 30%,
+        #9b51e0 70%,
+        #34a853 80%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+    background-size: 500% auto;
+    animation: textShine 10s ease-in-out infinite alternate;
+}
+
+@keyframes textShine {
+    0% {
+        background-position: 0% 50%;
+    }
+    100% {
+        background-position: 100% 50%;
+    }
 }
 
 .nav-right {
@@ -3214,7 +3223,6 @@ main {
 /* --- User Profile Card Specifics --- */
 .profile-card {
     width: auto !important;
-    background: #f0f4f9 !important; /* Google's exact modal background color */
     padding: 16px 24px 24px 24px !important;
     border-radius: 28px !important;
     right: -10px !important; /* Aligns perfectly with the edge of the screen */
@@ -3260,12 +3268,12 @@ main {
 .profile-action-btn {
     width: 100%;
     background: transparent;
-    border: 1px solid #747775;
-    color: #0b57d0;
+    border: none;
+    color: #1f1f1f !important;
     font-weight: 500;
-    font-size: 14px;
+    font-size: 12px !important;
     padding: 10px 24px;
-    border-radius: 24px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3274,8 +3282,7 @@ main {
 }
 
 .profile-action-btn:hover {
-    background: rgba(11, 87, 208, 0.04);
-    border-color: #0b57d0;
+    background: rgba(0,0,0,0.05) !important;
 }
 
 [data-theme='dark'] .profile-card { background: #1e1f20 !important; }[data-theme='dark'] .profile-action-btn { border-color: #8e918f; color: #a8c7fa; }
@@ -3450,7 +3457,6 @@ main {
    ============================================================ */
 
 #intro-screen { 
-    margin-top: 10vh; 
     text-align: left; 
     width: 100%; 
     max-width: 700px; 
@@ -3489,7 +3495,6 @@ main {
 /* 2. The Card Surface */
 .intro-action-card {
     background: var(--bg); /* Matches light/dark mode automatically */
-    border: 1px solid var(--border);
     border-radius: 24px;
     padding: 30px;
     position: relative; /* Keeps it above the shadow */
@@ -3502,7 +3507,7 @@ main {
 .intro-card-title {
     font-size: 15px;
     font-weight: 600;
-    color: #444746;
+    color: #1f1f1f;
     margin: 0;
 }
 
@@ -3516,7 +3521,7 @@ main {
 
 .intro-pebble {
     flex: 1;
-    background: #f8f9fa;
+    background: #f8f9fa50;
     border: 1px solid transparent;
     border-radius: 20px;
     padding: 20px;
@@ -3564,10 +3569,7 @@ main {
 
 /* Hover States */
 .intro-pebble:hover {
-    background: #ffffff;
-    border-color: #6002ee;
-    box-shadow: 0 4px 15px rgba(11, 87, 208, 0.08);
-    transform: translateY(-2px);
+    background: #f0f4f9c0;
 }
 
 /* Dark Mode Overrides */
@@ -3763,11 +3765,25 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
 }
 
 .report-content {
-    width: 100%;
     box-sizing: border-box;
     overflow-x: hidden; /* Stop the main body from scrolling sideways */
     word-break: break-word; /* Force long URLs or unbroken words to wrap */
     overflow-wrap: break-word;
+    margin-top: -12px;
+}
+
+.report-content::-webkit-scrollbar {
+    width: 4px;
+}
+.report-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+.report-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* Subtle gray */
+    border-radius: 4px;
+}
+.report-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* Darker gray on hover */
 }
 
 /* 2. Safely contain AI-generated Code Blocks */
@@ -3791,10 +3807,35 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
     box-sizing: border-box;
 }
 
+.report-content.prose table::-webkit-scrollbar {
+    height: 4px;
+}
+
+.report-content.prose table::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.report-content.prose table::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* Subtle gray */
+    border-radius: 4px;
+}
+
+.report-content.prose table::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* Darker gray on hover */
+}
+
 /* 4. Tighter side margins for mobile reading */
 @media (max-width: 768px) {
     .report-content {
         padding: 20px 16px !important; /* Reduces side padding to maximize text space */
+    }
+
+    .report-content h1 {
+        font-size: large !important;
+    }
+
+    .report-content p {
+        font-size: medium !important;
     }
 }
 
@@ -3809,8 +3850,17 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
     height: 64px; /* Matches the Spreadsheet toolbar height */
     width: 100%;
     box-sizing: border-box;
-    border-bottom: 1px solid #e0e0e0;
-    background: white;
+    border-bottom: 1px solid #e3e3e3;
+    background: #f8f9fa50;
+    backdrop-filter: blur(12px);
+}
+
+#kratabook-view code {
+    background: #f1f3f4;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #009da8;
 }
 
 /* Ensure the inner flex container doesn't wrap */
@@ -3820,6 +3870,7 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
     gap: 12px;
     flex: 1; /* Makes the title container take up all available space */
     min-width: 0; /* CRITICAL for text truncation to work in flexbox */
+    justify-content: flex-end;
 }
 
 #kratabook-title-display {
@@ -3840,9 +3891,6 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
 }
 
 @media (max-width: 768px) {
-    #kratabook-view {
-        padding-left: 32px;
-    }
     
     #kratabook-title-display {
         font-size: 16px; /* Slightly smaller text for mobile */
@@ -3850,6 +3898,7 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
     
     #kratabook-view .view-header {
         padding: 8px 12px;
+        padding-left: 42px;
     }
 }
 
@@ -4244,7 +4293,7 @@ button {
 }
 
 .icon-btn:hover {
-    background-color: rgba(68, 71, 70, 0.08);
+    background-color: #e3e8ef;
     color: #1f1f1f;
 }
 
@@ -4256,9 +4305,9 @@ button {
 /* 5. Menu / List Items (Sidebar & Dropdowns) */
 .menu-item {
     width: 100%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: small;
     font-weight: 400;
     color: #1f1f1f;
     justify-content: flex-start; /* Left aligned */
@@ -4266,7 +4315,7 @@ button {
 }
 
 .menu-item:hover {
-    background-color: #f0f4f9;
+    background-color: #e3e8ef;
 }
 
 .menu-item i, .menu-item svg {
