@@ -949,15 +949,9 @@
                 
                 <div class="modal-body pt-4">
                     <!-- Toggle -->
-                    <div class="flex items-center justify-between mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200">
-                        <div class="flex items-center gap-3">
-                            <i data-lucide="power" class="text-blue-600 w-5 h-5"></i>
-                            <div class="flex flex-col">
-                                <span class="font-bold text-sm text-gray-800">Enable Background Context</span>
-                                <span class="text-xs text-gray-500">Inject this data into AI prompts.</span>
-                            </div>
-                        </div>
-                        <label class="switch">
+                    <div class="flex mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-200" style="padding-bottom: 10px; align-items: center;">
+                        <span class="font-bold text-sm text-gray-800" style="padding-right: 20px; color: #70757a; font-size: small;">Enable Background Context</span>
+                        <label class="switch" style="top: 2px;">
                             <input type="checkbox" id="bg-toggle">
                             <span class="slider round"></span>
                         </label>
@@ -965,19 +959,19 @@
 
                     <!-- Inputs -->
                     <div class="form-group">
-                        <label>Company Name</label>
-                        <input type="text" id="bg-company-name" class="custom-select" placeholder="e.g. Acme Corp">
+                        <label style="color: #70757a; font-size: small;">Company Name</label>
+                        <input type="text" id="bg-company-name" class="custom-select" placeholder="e.g. Acme Corp" style="margin-top: 10px;">
                     </div>
                     
                     <div class="form-group">
-                        <label>Industry / Sector</label>
-                        <input type="text" id="bg-industry" class="custom-select" placeholder="e.g. D2C, SaaS, Real Estate">
+                        <label style="color: #70757a; font-size: small;">Industry / Sector</label>
+                        <input type="text" id="bg-industry" class="custom-select" placeholder="e.g. D2C, SaaS, Real Estate" style="margin-top: 10px;">
                     </div>
                     
                     <div class="form-group">
-                        <label>Company Description</label>
-                        <textarea id="bg-description" class="custom-select" rows="4" maxlength="500" placeholder="Briefly describe your business model and goals..."></textarea>
-                        <div class="text-right text-xs text-gray-400 mt-2"><span id="bg-char-count">0</span>/500 characters</div>
+                        <label style="color: #70757a; font-size: small;">Company Description</label>
+                        <textarea id="bg-description" class="custom-select" rows="4" maxlength="500" placeholder="Briefly describe your business model and goals..." style="margin-top: 10px;"></textarea>
+                        <div class="text-right text-xs text-gray-400 mt-2" style="color: #70757a; font-size: small;"><span id="bg-char-count">0</span>/500 characters</div>
                     </div>
                 </div>
 
