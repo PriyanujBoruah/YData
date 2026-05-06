@@ -80,15 +80,17 @@ async function init() {
     // 2. Handle User Authentication
     window.addEventListener('user-authenticated', async (e) => {
         // --- THE LOCK ---
+        // Prevents double-initialization if the event fires multiple times (e.g., during redirect)
         if (state.isDatabaseReady || isBooting) return;
-    
+
         const user = e.detail;
         const email = user.email;
 
-        // 🚀 B2B LOGIC: Handle metadata
+        // 🚀 B2B LOGIC: Handle metadata (Sign-up, Google OAuth, and Roles)
         const metadata = user.user_metadata;
         const displayName = metadata?.display_name || metadata?.full_name || email.split('@')[0];
         const organization = metadata?.org_id || "Personal Workspace";
+        const role = metadata?.role || "user"; // 🚀 NEW: Extract Role (Admin/User)
         const avatarUrl = metadata?.avatar_url;
         const initial = displayName.charAt(0).toUpperCase();
 
@@ -103,7 +105,7 @@ async function init() {
         const orgDisplay = document.getElementById('profile-org-display');
         const greetingDisplay = document.getElementById('profile-greeting');
 
-        // Avatar Image Logic
+        // Avatar Image Logic (Google PFP Support)
         if (avatarUrl) {
             const imgHtml = `<img src="${avatarUrl}" alt="${displayName}" referrerpolicy="no-referrer" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
             if (avatarCircle) { avatarCircle.innerHTML = imgHtml; avatarCircle.style.background = 'transparent'; }
@@ -114,12 +116,19 @@ async function init() {
         }
 
         if (emailDisplay) emailDisplay.innerText = email;
-        if (greetingDisplay) greetingDisplay.innerText = `Hi, ${displayName}!`;
+        
+        // 🚀 NEW: Show Admin Badge if applicable
+        if (greetingDisplay) {
+            greetingDisplay.innerHTML = `Hi, ${displayName}! ${role === 'admin' ? 
+                '<span class="badge" style="font-size:10px; vertical-align:middle; margin-left:5px; background: #e8f0fe; color: #0b57d0; padding: 2px 6px; border-radius: 4px; font-weight: 800; border: 1px solid #c2e7ff; text-transform: uppercase;">Admin</span>' 
+                : ''}`;
+        }
+        
         if (orgDisplay) orgDisplay.innerText = organization;
 
         // 2. THE ENGINE BOOT
         isBooting = true;
-        console.log(`Verified Session for Org: [${organization}]. Booting Engine...`);
+        console.log(`Verified Session for [${displayName}] in [${organization}] as [${role}]. Booting Engine...`);
 
         try {
             // Await the engine initialization fully
@@ -1101,6 +1110,10 @@ window.viewKrataBook = async (id) => {
     // Note: We pass 'this' so the function can animate the button clicked
     document.getElementById('kb-header-actions').innerHTML = `
         <button class="secondary-btn text-[12px] py-1.5 px-3 flex items-center gap-2" 
+            onclick="exportKrataBookToPDF(this)">
+            <i data-lucide="download-cloud" class="w-3.5 h-3.5"></i> Export PDF
+        </button>
+        <button class="secondary-btn text-[12px] py-1.5 px-3 flex items-center gap-2" 
             onclick="handleSaveKrataBookToLibrary('${book.id}', this)">
             <i data-lucide="bookmark" class="w-3.5 h-3.5"></i> Library
         </button>
@@ -1621,6 +1634,58 @@ window.handleSaveKrataBookToLibrary = async (bookId, btn) => {
         alert("Failed to save to Library.");
         
         // Restore button on error
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        if (window.lucide) lucide.createIcons();
+    }
+};
+
+/**
+ * EXPORT KRATABOOK TO PDF
+ * Converts the report content area into a professional PDF document.
+ */
+window.exportKrataBookToPDF = async (btn) => {
+    const originalHtml = btn.innerHTML;
+    const reportElement = document.getElementById('kratabook-content-area');
+    const reportTitle = document.getElementById('kratabook-title-display').innerText;
+
+    try {
+        // 1. UI Loading State
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-3.5 h-3.5"></i> Generating...`;
+        btn.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        // 2. Hide non-printable elements (like the "Share to Workspace" bar)
+        const actionsBar = reportElement.querySelector('.bg-gray-50');
+        if (actionsBar) actionsBar.style.display = 'none';
+
+        // 3. PDF Configuration
+        const opt = {
+            margin:       [15, 15],
+            filename:     `${reportTitle.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        // 4. Run Conversion
+        // We use html2pdf to capture the 'report-content' div
+        await html2pdf().set(opt).from(reportElement).save();
+
+        // 5. Restore UI
+        if (actionsBar) actionsBar.style.display = 'flex';
+        btn.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5"></i> Downloaded`;
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }, 3000);
+
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        alert("Failed to generate PDF. Please try again.");
         btn.innerHTML = originalHtml;
         btn.disabled = false;
         if (window.lucide) lucide.createIcons();
