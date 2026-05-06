@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Krata AI | Super Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0b57d0; --bg: #f8f9fa; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 40px; color: #1f1f1f; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .card { background: white; padding: 24px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; font-size: 12px; color: #70757a; text-transform: uppercase; padding: 12px; }
+        td { padding: 12px; border-top: 1px solid #eee; font-size: 14px; }
+        input { padding: 8px; border-radius: 8px; border: 1px solid #ddd; width: 60px; }
+        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+        .badge { background: #e8f0fe; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Org Controller</h1>
+            <p id="admin-email" class="badge">Checking Admin Access...</p>
+        </div>
+
+        <div class="card">
+            <h3>Set Limit for New/Existing Org</h3>
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <input type="text" id="new-org-id" placeholder="org_id" style="width:200px">
+                <input type="number" id="new-org-limit" value="5">
+                <button onclick="updateLimit()">Save Limit</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Active Organizations</h3>
+            <table id="org-table">
+                <thead>
+                    <tr>
+                        <th>Org ID</th>
+                        <th>Max Seats</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="org-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script type="module">
+        // 🚀 CONFIGURATION (Replace with your variables)
+        const SUPABASE_URL = "https://tmgqamxfsezqbanecfsu.supabase.co";
+        const SUPABASE_KEY = "YOUR_ANON_KEY"; 
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function checkAccess() {
+            const { data: { user } } = await supabase.auth.getUser();
+            // 🛡️ Change this to your email
+            if (!user || user.email !== 'your-email@gmail.com') {
+                document.body.innerHTML = "<h1>403 Forbidden</h1><p>Only Super Admins can access this page.</p>";
+                return;
+            }
+            document.getElementById('admin-email').innerText = `Admin: ${user.email}`;
+            loadOrgs();
+        }
+
+        window.updateLimit = async () => {
+            const org_id = document.getElementById('new-org-id').value.trim().toLowerCase();
+            const max_users = document.getElementById('new-org-limit').value;
+
+            const { error } = await supabase
+                .from('org_settings')
+                .upsert({ org_id, max_users });
+
+            if (error) alert(error.message);
+            else { alert("Limit updated!"); loadOrgs(); }
+        }
+
+        async function loadOrgs() {
+            const { data } = await supabase.from('org_settings').select('*');
+            const list = document.getElementById('org-list');
+            list.innerHTML = data.map(org => `
+                <tr>
+                    <td><strong>${org.org_id}</strong></td>
+                    <td>${org.max_users} seats</td>
+                    <td><button onclick="document.getElementById('new-org-id').value='${org.org_id}';">Edit</button></td>
+                </tr>
+            `).join('');
+        }
+
+        checkAccess();
+    </script>
+</body>
+</html>
