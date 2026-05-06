@@ -3901,6 +3901,18 @@ body, main, #chat-container, .sidebar, #spreadsheet-view, .full-page-overlay, .a
     }
 }
 
+/* PDF Export Helpers */
+@media print {
+    .no-print { display: none !important; }
+}
+
+.report-content h1, .report-content h2 {
+    page-break-after: avoid;
+}
+
+.report-content table, .report-content img, .mermaid-chart-wrapper {
+    page-break-inside: avoid;
+}
 
 
 
