@@ -24,7 +24,7 @@ export async function initAuth() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     handleAuthState(session);
 
-    // 2. Listen for Auth State Changes (Handles redirects after Google Login)
+    // 2. Listen for Auth State Changes
     supabaseClient.auth.onAuthStateChange((event, session) => {
         handleAuthState(session);
     });
@@ -67,46 +67,46 @@ export async function initAuth() {
             submitBtn.disabled = true;
 
             if (isSignUp) {
-                // 🚀 START SEAT LIMIT CHECK
-                // 1. Fetch the limit for this Org
+                // 1. Fetch seat limits for this Org
                 const { data: settings } = await supabaseClient
                     .from('org_settings')
                     .select('max_users')
                     .eq('org_id', organization)
                     .single();
 
-                // Note: In this logic, if an Org isn't in 'org_settings', 
-                // we block sign-up (assuming Admin must provision it first).
                 if (!settings) {
-                    alert(`The organization "${organization}" is not registered in our system. Please contact your admin.`);
+                    alert(`The organization "${organization}" is not registered. Please contact your administrator.`);
                     submitBtn.disabled = false;
                     submitBtn.innerText = "Create Account";
                     return;
                 }
 
-                // 2. Count existing members in the profiles table
-                const { count, error: countErr } = await supabaseClient
+                // 2. Count existing members to determine role and check capacity
+                const { count } = await supabaseClient
                     .from('profiles')
                     .select('*', { count: 'exact', head: true })
                     .eq('org_id', organization);
 
-                // 3. Enforce the limit
+                // 🚀 ROLE LOGIC: First user is admin, others are users
+                const assignedRole = (count === 0) ? 'admin' : 'user';
+
+                // 3. Enforce seat limit
                 if (count !== null && count >= settings.max_users) {
                     alert(`Registration Failed: "${organization}" has reached its limit of ${settings.max_users} users.`);
                     submitBtn.disabled = false;
                     submitBtn.innerText = "Create Account";
                     return;
                 }
-                // 🚀 END SEAT LIMIT CHECK
 
-                // Proceed with Registration
+                // 4. Proceed with Supabase Auth Registration
                 const { data: authData, error } = await supabaseClient.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
                             display_name: username,
-                            org_id: organization
+                            org_id: organization,
+                            role: assignedRole // 🚀 Store role in Auth metadata
                         }
                     }
                 });
@@ -114,13 +114,17 @@ export async function initAuth() {
                 if (error) {
                     alert("Signup Error: " + error.message);
                 } else if (authData.user) {
-                    // 🚀 CRITICAL: Insert into 'profiles' so the user is counted immediately
+                    // 🚀 CRITICAL: Insert into 'profiles' table with the assigned role
                     await supabaseClient.from('profiles').insert([{
                         id: authData.user.id,
                         org_id: organization,
-                        email: email
+                        email: email,
+                        role: assignedRole
                     }]);
-                    alert("Success! Check your email for a confirmation link.");
+                    
+                    alert(assignedRole === 'admin' ? 
+                        "Organization Created! You have been assigned the Admin role. Please check your email to confirm." : 
+                        "Account created! Please check your email for a confirmation link.");
                 }
             } else {
                 // LOGIN Logic
@@ -138,9 +142,7 @@ export async function initAuth() {
         googleBtn.addEventListener('click', async () => {
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
-                options: {
-                    redirectTo: window.location.origin
-                }
+                options: { redirectTo: window.location.origin }
             });
             if (error) alert("Google Login Error: " + error.message);
         });
@@ -148,16 +150,45 @@ export async function initAuth() {
 }
 
 /**
- * Validates session and handles B2B onboarding for Google users
+ * Validates session and handles B2B onboarding/role assignment for Google users
+ */
+/**
+ * Validates session, handles B2B onboarding, role assignment, 
+ * and enforces Organization Expiry and Seat Limits.
  */
 async function handleAuthState(session) {
     const overlay = document.getElementById('auth-overlay');
     if (!overlay) return;
 
+    // 1. Safety check: attempt to re-fetch session if null (Brave browser / Redirect fix)
+    if (!session) {
+        const { data } = await supabaseClient.auth.getSession();
+        session = data.session;
+    }
+
     if (session) {
         const user = session.user;
         const orgId = user.user_metadata?.org_id;
+        const isSuperAdmin = user.email === 'boruahpriyanuj2004@gmail.com';
 
+        // 🚀 LOGIN CHECK: If user already belongs to an Org, check if that Org is expired
+        if (orgId && !isSuperAdmin) {
+            const { data: settings } = await supabaseClient
+                .from('org_settings')
+                .select('expires_at')
+                .eq('org_id', orgId)
+                .single();
+
+            // Block access if Org is missing or current date is past expires_at
+            if (!settings || new Date(settings.expires_at) < new Date()) {
+                alert(`Access Denied: The license for "${orgId}" has expired. Please contact your administrator.`);
+                await supabaseClient.auth.signOut();
+                window.location.reload();
+                return;
+            }
+        }
+
+        // 🚀 GOOGLE ONBOARDING LOGIC: For new users without an Org ID
         if (!orgId) {
             const orgName = prompt("Welcome! Please enter your Organization Name (Company Name) to initialize your workspace:");
             
@@ -169,40 +200,83 @@ async function handleAuthState(session) {
 
             const organization = orgName.trim().toLowerCase();
 
-            // 🚀 SEAT LIMIT CHECK FOR GOOGLE USERS
-            const { data: settings } = await supabaseClient.from('org_settings').select('max_users').eq('org_id', organization).single();
-            if (!settings) {
-                alert(`The organization "${organization}" is not registered.`);
+            // 1. Fetch Org Settings (Limit and Expiry)
+            const { data: settings } = await supabaseClient
+                .from('org_settings')
+                .select('max_users, expires_at')
+                .eq('org_id', organization)
+                .single();
+
+            // 2. Validate Registration and Expiry (Bypass for Super Admin)
+            if (!isSuperAdmin) {
+                if (!settings) {
+                    alert(`The organization "${organization}" is not registered in our system.`);
+                    await supabaseClient.auth.signOut();
+                    return;
+                }
+
+                if (new Date(settings.expires_at) < new Date()) {
+                    alert(`The license for "${organization}" has expired.`);
+                    await supabaseClient.auth.signOut();
+                    return;
+                }
+            }
+
+            // 3. Count existing members to determine role and check capacity
+            const { count } = await supabaseClient
+                .from('profiles')
+                .select('*', { count: 'exact', head: true })
+                .eq('org_id', organization);
+            
+            const assignedRole = (count === 0 || isSuperAdmin) ? 'admin' : 'user';
+
+            // 4. Enforce Seat Capacity (Bypass for Super Admin)
+            if (!isSuperAdmin && count !== null && count >= settings.max_users) {
+                alert(`Registration Failed: This organization is full (${settings.max_users} seats used).`);
                 await supabaseClient.auth.signOut();
                 return;
             }
 
-            const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', organization);
-            if (count !== null && count >= settings.max_users) {
-                alert(`This organization is full (${settings.max_users} seats used).`);
-                await supabaseClient.auth.signOut();
-                return;
-            }
-
-            // Update user metadata
-            const { error } = await supabaseClient.auth.updateUser({
+            // 5. Update Auth Metadata with Org and Role
+            const { error: updateError } = await supabaseClient.auth.updateUser({
                 data: { 
                     org_id: organization,
-                    display_name: user.user_metadata?.full_name || user.email.split('@')[0]
+                    display_name: user.user_metadata?.full_name || user.email.split('@')[0],
+                    role: assignedRole
                 }
             });
 
-            if (!error) {
-                // 🚀 Create profile for Google user
-                await supabaseClient.from('profiles').insert([{ id: user.id, org_id: organization, email: user.email }]);
+            if (!updateError) {
+                // 6. Create the profile record in the public table
+                await supabaseClient.from('profiles').insert([{ 
+                    id: user.id, 
+                    org_id: organization, 
+                    email: user.email,
+                    role: assignedRole 
+                }]);
+
+                // 7. Auto-provision Org in settings if it's the Super Admin's first time
+                if (isSuperAdmin && !settings) {
+                    await supabaseClient.from('org_settings').insert([{
+                        org_id: organization,
+                        max_users: 100,
+                        expires_at: new Date(new Date().setFullYear(new Date().getFullYear() + 10)).toISOString() // 10 years
+                    }]);
+                }
+
                 window.location.reload(); 
+            } else {
+                alert("Account update failed: " + updateError.message);
+                await supabaseClient.auth.signOut();
             }
             return;
         }
 
+        // Authentication Successful: Hide login screen and boot the app
         overlay.classList.add('auth-hidden');
         window.dispatchEvent(new CustomEvent('user-authenticated', { detail: user }));
     } else {
+        // No session found, ensure login screen is visible
         overlay.classList.remove('auth-hidden');
     }
 }
@@ -212,6 +286,9 @@ export async function logout() {
     window.location.reload();
 }
 
+/**
+ * UPDATE USER PROFILE
+ */
 export async function updateUserProfile(newUsername, newOrg) {
     const { data, error } = await supabaseClient.auth.updateUser({
         data: { 
