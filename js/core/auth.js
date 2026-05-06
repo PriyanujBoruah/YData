@@ -61,25 +61,69 @@ export async function initAuth() {
             const email = document.getElementById('auth-email').value;
             const password = document.getElementById('auth-password').value;
             const username = usernameInput.value;
-            const organization = orgInput.value;
+            const organization = orgInput.value.trim().toLowerCase();
 
             submitBtn.innerText = isSignUp ? "Creating..." : "Verifying...";
             submitBtn.disabled = true;
 
             if (isSignUp) {
-                const { error } = await supabaseClient.auth.signUp({
+                // 🚀 START SEAT LIMIT CHECK
+                // 1. Fetch the limit for this Org
+                const { data: settings } = await supabaseClient
+                    .from('org_settings')
+                    .select('max_users')
+                    .eq('org_id', organization)
+                    .single();
+
+                // Note: In this logic, if an Org isn't in 'org_settings', 
+                // we block sign-up (assuming Admin must provision it first).
+                if (!settings) {
+                    alert(`The organization "${organization}" is not registered in our system. Please contact your admin.`);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Create Account";
+                    return;
+                }
+
+                // 2. Count existing members in the profiles table
+                const { count, error: countErr } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('org_id', organization);
+
+                // 3. Enforce the limit
+                if (count !== null && count >= settings.max_users) {
+                    alert(`Registration Failed: "${organization}" has reached its limit of ${settings.max_users} users.`);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Create Account";
+                    return;
+                }
+                // 🚀 END SEAT LIMIT CHECK
+
+                // Proceed with Registration
+                const { data: authData, error } = await supabaseClient.auth.signUp({
                     email,
                     password,
                     options: {
                         data: {
                             display_name: username,
-                            org_id: organization.trim().toLowerCase()
+                            org_id: organization
                         }
                     }
                 });
-                if (error) alert("Signup Error: " + error.message);
-                else alert("Success! Check your email for a confirmation link.");
+
+                if (error) {
+                    alert("Signup Error: " + error.message);
+                } else if (authData.user) {
+                    // 🚀 CRITICAL: Insert into 'profiles' so the user is counted immediately
+                    await supabaseClient.from('profiles').insert([{
+                        id: authData.user.id,
+                        org_id: organization,
+                        email: email
+                    }]);
+                    alert("Success! Check your email for a confirmation link.");
+                }
             } else {
+                // LOGIN Logic
                 const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
                 if (error) alert("Login Error: " + error.message);
             }
@@ -95,7 +139,7 @@ export async function initAuth() {
             const { error } = await supabaseClient.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: window.location.origin // Redirects back to your app
+                    redirectTo: window.location.origin
                 }
             });
             if (error) alert("Google Login Error: " + error.message);
@@ -114,9 +158,6 @@ async function handleAuthState(session) {
         const user = session.user;
         const orgId = user.user_metadata?.org_id;
 
-        // 🚀 THE B2B GOOGLE CHECK: 
-        // If a user logs in via Google for the first time, they won't have an org_id.
-        // We force them to provide one before letting them into the app.
         if (!orgId) {
             const orgName = prompt("Welcome! Please enter your Organization Name (Company Name) to initialize your workspace:");
             
@@ -126,29 +167,42 @@ async function handleAuthState(session) {
                 return;
             }
 
-            // Update user metadata permanently with the Org name
+            const organization = orgName.trim().toLowerCase();
+
+            // 🚀 SEAT LIMIT CHECK FOR GOOGLE USERS
+            const { data: settings } = await supabaseClient.from('org_settings').select('max_users').eq('org_id', organization).single();
+            if (!settings) {
+                alert(`The organization "${organization}" is not registered.`);
+                await supabaseClient.auth.signOut();
+                return;
+            }
+
+            const { count } = await supabaseClient.from('profiles').select('*', { count: 'exact', head: true }).eq('org_id', organization);
+            if (count !== null && count >= settings.max_users) {
+                alert(`This organization is full (${settings.max_users} seats used).`);
+                await supabaseClient.auth.signOut();
+                return;
+            }
+
+            // Update user metadata
             const { error } = await supabaseClient.auth.updateUser({
                 data: { 
-                    org_id: orgName.trim().toLowerCase(),
+                    org_id: organization,
                     display_name: user.user_metadata?.full_name || user.email.split('@')[0]
                 }
             });
 
             if (!error) {
-                // Hard refresh to ensure all downstream modules (Workspace/Library) 
-                // load the correct data using the new org_id metadata
+                // 🚀 Create profile for Google user
+                await supabaseClient.from('profiles').insert([{ id: user.id, org_id: organization, email: user.email }]);
                 window.location.reload(); 
-            } else {
-                alert("Failed to initialize workspace: " + error.message);
             }
             return;
         }
 
-        // User is fully authenticated and has an Org ID
         overlay.classList.add('auth-hidden');
         window.dispatchEvent(new CustomEvent('user-authenticated', { detail: user }));
     } else {
-        // No session, show the login screen
         overlay.classList.remove('auth-hidden');
     }
 }
@@ -158,10 +212,6 @@ export async function logout() {
     window.location.reload();
 }
 
-/**
- * UPDATE USER PROFILE
- * Updates Supabase Auth Metadata (display_name and org_id)
- */
 export async function updateUserProfile(newUsername, newOrg) {
     const { data, error } = await supabaseClient.auth.updateUser({
         data: { 
