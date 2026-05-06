@@ -2,95 +2,363 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Krata AI | Super Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krata AI | Super Admin Console</title>
+    
+    <!-- Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-        :root { --primary: #0b57d0; --bg: #f8f9fa; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); padding: 40px; color: #1f1f1f; }
-        .container { max-width: 800px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .card { background: white; padding: 24px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; font-size: 12px; color: #70757a; text-transform: uppercase; padding: 12px; }
-        td { padding: 12px; border-top: 1px solid #eee; font-size: 14px; }
-        input { padding: 8px; border-radius: 8px; border: 1px solid #ddd; width: 60px; }
-        button { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: 600; }
-        .badge { background: #e8f0fe; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; }
+        :root {
+            --primary: #0b57d0;
+            --bg: #f8f9fa;
+            --card: #ffffff;
+            --border: #e3e3e3;
+            --text-main: #1f1f1f;
+            --text-sub: #70757a;
+            --danger: #d93025;
+            --success: #137333;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Access Denied View */
+        #forbidden {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        #forbidden h1 { font-size: 64px; margin: 0; color: var(--danger); }
+        
+        /* Main Container */
+        #admin-ui {
+            display: none; 
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .header h1 { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+        
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #e8f0fe;
+            color: var(--primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border-radius: 28px;
+            padding: 32px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            margin-bottom: 24px;
+        }
+
+        .card h3 { margin: 0 0 20px 0; font-size: 18px; font-weight: 700; }
+
+        /* Form Grid */
+        .provision-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1.5fr auto;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; }
+        .input-group label { font-size: 11px; font-weight: 800; color: var(--text-sub); text-transform: uppercase; }
+
+        input {
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: #fcfcfc;
+            font-size: 14px;
+            outline: none;
+            transition: border 0.2s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        input:focus { border-color: var(--primary); }
+
+        button {
+            padding: 14px 24px;
+            border-radius: 14px;
+            border: none;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #0842a0; transform: translateY(-1px); }
+
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; font-size: 11px; color: var(--text-sub); text-transform: uppercase; padding: 16px 12px; border-bottom: 2px solid var(--bg); }
+        td { padding: 20px 12px; border-bottom: 1px solid var(--bg); font-size: 14px; vertical-align: middle; }
+
+        /* Status Tags */
+        .status-tag {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .status-expired { background: #fce8e6; color: var(--danger); }
+        .status-active { background: #e6f4ea; color: var(--success); }
+
+        .btn-icon { background: #f1f3f4; color: var(--text-main); padding: 8px; border-radius: 10px; }
+        .btn-icon:hover { background: #e8eaed; }
+
+        @media (max-width: 768px) {
+            .provision-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+
+    <!-- 403 Forbidden View -->
+    <div id="forbidden">
+        <i data-lucide="shield-alert" style="width: 64px; height: 64px; color: var(--danger); margin-bottom: 20px;"></i>
+        <h1>403</h1>
+        <p>Unauthorized Access.<br>This console is restricted to the Super Admin.</p>
+        <button class="btn-primary" style="margin-top: 20px;" onclick="window.location.href='index.html'">Go Back Home</button>
+    </div>
+
+    <!-- Main Dashboard UI -->
+    <div id="admin-ui">
         <div class="header">
-            <h1>Org Controller</h1>
-            <p id="admin-email" class="badge">Checking Admin Access...</p>
+            <div>
+                <h1>Organization Controller</h1>
+                <div class="admin-badge">
+                    <i data-lucide="shield-check" style="width:14px"></i>
+                    <span>Super Admin: boruahpriyanuj2004@gmail.com</span>
+                </div>
+            </div>
+            <button onclick="handleLogout()" style="background:#fce8e6; color:var(--danger); border: 1px solid #f8d7da;">
+                <i data-lucide="log-out" style="width:16px"></i> Sign Out
+            </button>
         </div>
 
+        <!-- Provisioning Form -->
         <div class="card">
-            <h3>Set Limit for New/Existing Org</h3>
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <input type="text" id="new-org-id" placeholder="org_id" style="width:200px">
-                <input type="number" id="new-org-limit" value="5">
-                <button onclick="updateLimit()">Save Limit</button>
+            <h3>Issue / Renew License</h3>
+            <div class="provision-grid">
+                <div class="input-group">
+                    <label>Organization ID</label>
+                    <input type="text" id="form-org-id" placeholder="e.g. acme-corp">
+                </div>
+                <div class="input-group">
+                    <label>Seat Limit</label>
+                    <input type="number" id="form-org-limit" value="5" min="1">
+                </div>
+                <div class="input-group">
+                    <label>Expiry Date</label>
+                    <input type="date" id="form-org-expiry">
+                </div>
+                <button class="btn-primary" onclick="saveLicense()">
+                    <i data-lucide="save" style="width:18px"></i> Save License
+                </button>
             </div>
         </div>
 
-        <div class="card">
-            <h3>Active Organizations</h3>
-            <table id="org-table">
+        <!-- Active Orgs Table -->
+        <div class="card" style="padding: 10px 0;">
+            <div style="padding: 22px 32px 10px 32px;">
+                <h3>Registered Organizations</h3>
+            </div>
+            <table>
                 <thead>
                     <tr>
-                        <th>Org ID</th>
-                        <th>Max Seats</th>
-                        <th>Actions</th>
+                        <th>Organization</th>
+                        <th>Seat Capacity</th>
+                        <th>Status</th>
+                        <th>Expiry Date</th>
+                        <th style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
-                <tbody id="org-list"></tbody>
+                <tbody id="org-list">
+                    <!-- Rows will be injected here -->
+                </tbody>
             </table>
         </div>
     </div>
 
     <script type="module">
-        // 🚀 CONFIGURATION (Replace with your variables)
+        // 🚀 CONFIGURATION
         const SUPABASE_URL = "https://tmgqamxfsezqbanecfsu.supabase.co";
-        const SUPABASE_KEY = "YOUR_ANON_KEY"; 
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtZ3FhbXhmc2V6cWJhbmVjZnN1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMjYwMTUsImV4cCI6MjA5MjgwMjAxNX0.t6pVz91F8JeWtZMJKrBG2XYLRHXh8VejdZtRps9K6RM"; // Use the Anon Key from your .env
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        const MASTER_EMAIL = 'boruahpriyanuj2004@gmail.com';
+
+        /**
+         * Access Control: Verifies Super Admin Email
+         */
         async function checkAccess() {
-            const { data: { user } } = await supabase.auth.getUser();
-            // 🛡️ Change this to your email
-            if (!user || user.email !== 'your-email@gmail.com') {
-                document.body.innerHTML = "<h1>403 Forbidden</h1><p>Only Super Admins can access this page.</p>";
-                return;
+            const { data: { session } } = await supabase.auth.getSession();
+            const user = session?.user;
+
+            if (user && user.email.toLowerCase() === MASTER_EMAIL.toLowerCase()) {
+                document.getElementById('admin-ui').style.display = 'block';
+                loadData();
+            } else {
+                document.getElementById('forbidden').style.display = 'flex';
             }
-            document.getElementById('admin-email').innerText = `Admin: ${user.email}`;
-            loadOrgs();
+            lucide.createIcons();
         }
 
-        window.updateLimit = async () => {
-            const org_id = document.getElementById('new-org-id').value.trim().toLowerCase();
-            const max_users = document.getElementById('new-org-limit').value;
+        /**
+         * Save/Update License logic
+         */
+        window.saveLicense = async () => {
+            const org_id = document.getElementById('form-org-id').value.trim().toLowerCase();
+            const max_users = parseInt(document.getElementById('form-org-limit').value);
+            const expiryStr = document.getElementById('form-org-expiry').value;
+
+            if (!org_id || !expiryStr) return alert("Please provide both an Org ID and an Expiry Date.");
+
+            const expires_at = new Date(expiryStr).toISOString();
 
             const { error } = await supabase
                 .from('org_settings')
-                .upsert({ org_id, max_users });
+                .upsert({ org_id, max_users, expires_at });
 
-            if (error) alert(error.message);
-            else { alert("Limit updated!"); loadOrgs(); }
+            if (error) alert("Database Error: " + error.message);
+            else {
+                alert(`Successfully updated license for: ${org_id}`);
+                clearForm();
+                loadData();
+            }
+        };
+
+        /**
+         * Main Data Fetcher
+         */
+        async function loadData() {
+            const listContainer = document.getElementById('org-list');
+            listContainer.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">Fetching Licenses...</td></tr>';
+
+            try {
+                // Fetch Organizations
+                const { data: orgs, error } = await supabase
+                    .from('org_settings')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!orgs || orgs.length === 0) {
+                    listContainer.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px;">No licenses found.</td></tr>';
+                    return;
+                }
+
+                // Render Table Rows
+                listContainer.innerHTML = orgs.map(org => {
+                    const expiryDateObj = org.expires_at ? new Date(org.expires_at) : new Date();
+                    const isExpired = expiryDateObj < new Date();
+                    
+                    const expiryLabel = expiryDateObj.toLocaleDateString('en-US', { 
+                        month: 'short', day: 'numeric', year: 'numeric' 
+                    });
+
+                    // Format date for the HTML date input (YYYY-MM-DD)
+                    const dateInputValue = org.expires_at ? org.expires_at.split('T')[0] : "";
+
+                    return `
+                        <tr>
+                            <td><strong style="font-size:15px; color:var(--primary);">${org.org_id}</strong></td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i data-lucide="users" style="width:14px; color:var(--text-sub);"></i>
+                                    <span style="font-weight:700;">${org.max_users} Seats</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="status-tag ${isExpired ? 'status-expired' : 'status-active'}">
+                                    ${isExpired ? 'Expired' : 'Active'}
+                                </span>
+                            </td>
+                            <td style="font-weight: 600; color: ${isExpired ? 'var(--danger)' : 'inherit'}">
+                                ${expiryLabel}
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn-icon" onclick="editRow('${org.org_id}', ${org.max_users}, '${dateInputValue}')">
+                                    <i data-lucide="edit-3" style="width:16px"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+                
+                lucide.createIcons();
+
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                listContainer.innerHTML = `<tr><td colspan="5" style="text-align:center; color:red; padding:40px;">Error: ${err.message}</td></tr>`;
+            }
         }
 
-        async function loadOrgs() {
-            const { data } = await supabase.from('org_settings').select('*');
-            const list = document.getElementById('org-list');
-            list.innerHTML = data.map(org => `
-                <tr>
-                    <td><strong>${org.org_id}</strong></td>
-                    <td>${org.max_users} seats</td>
-                    <td><button onclick="document.getElementById('new-org-id').value='${org.org_id}';">Edit</button></td>
-                </tr>
-            `).join('');
+        window.editRow = (id, limit, date) => {
+            document.getElementById('form-org-id').value = id;
+            document.getElementById('form-org-limit').value = limit;
+            document.getElementById('form-org-expiry').value = date;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.handleLogout = async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'index.html';
+        };
+
+        function clearForm() {
+            document.getElementById('form-org-id').value = '';
+            document.getElementById('form-org-limit').value = '5';
+            document.getElementById('form-org-expiry').value = '';
         }
 
+        // Initialize session check
         checkAccess();
     </script>
 </body>
