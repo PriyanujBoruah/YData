@@ -8,7 +8,7 @@
 
     <title>Krata AI</title>
 
-    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="/css/main.css">
 
     <!-- Lucide Icons for that Gemini look -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -24,6 +24,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+    <!-- PDF Export Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -223,7 +226,7 @@
                             <div class="profile-avatar-wrapper">
                                 <div id="profile-large-avatar" class="user-avatar large">U</div>
                             </div>
-                            <h5 id="profile-greeting" class="text-2xl font-normal text-gray-900 mt-3 mb-6">Hi, User!</h5>
+                            <h5 id="profile-greeting" class="text-2xl font-normal text-gray-900">Hi, User!</h5>
                             <div id="profile-org-container" class="flex items-center gap-1.5 mb-6 px-3 py-1 bg-gray-100 rounded-full border border-gray-200">
                                 <span id="profile-org-display" class="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Acme Corp</span>
                             </div>
@@ -1163,6 +1166,18 @@
         window.mermaid = mermaid;
     </script>
 
-    <script type="module" src="js/main.js"></script>
+    <!-- Separated tags -->
+    <script type="module" src="/js/main.js"></script>
+
+    <script>
+        // 🚀 ONLY register SW on production (Vercel), NOT on localhost
+        if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+            window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('PWA Active'))
+                .catch(err => console.error('PWA Error', err));
+            });
+        }
+    </script>
 </body>
 </html>
