@@ -787,6 +787,37 @@ function setupEventListeners() {
             }
         });
     }
+
+    document.getElementById('btn-open-feedback').addEventListener('click', async () => {
+        try {
+            // 1. Get the current user from Supabase
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            
+            if (!user) return alert("Please sign in to send feedback.");
+
+            // 2. Prepare the Metadata
+            const userEmail = encodeURIComponent(user.email);
+            const userOrg = encodeURIComponent(user.user_metadata?.org_id || 'Personal');
+
+            // 3. Construct your specific Pre-filled URL
+            // We use your ID: 1777337187 for Email and 1574410993 for Org
+            const baseUrl = "https://docs.google.com/forms/d/e/1FAIpQLSea6zMCDL_TuUSnsGOI_LcYsm5HrsYVy2eSM3WbUkKc7PhhxA/viewform?embedded=true";
+            const prefilledUrl = `${baseUrl}&entry.1777337187=${userEmail}&entry.1574410993=${userOrg}`;
+
+            // 4. Inject into Iframe and Open
+            const iframe = document.getElementById('feedback-iframe');
+            iframe.src = prefilledUrl;
+
+            // Close the settings dropdown first
+            document.getElementById('settings-dropdown').classList.add('hidden');
+            
+            // Open the modal
+            window.openModal('feedback-modal');
+
+        } catch (err) {
+            console.error("Feedback error:", err);
+        }
+    });
 }
 
 
