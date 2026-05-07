@@ -116,13 +116,13 @@
                 <!-- Settings Dropdown -->
                 <div id="settings-dropdown" class="dropdown-menu settings-menu hidden">
                     <!-- Privacy Tool Shortcut -->
-                    <button class="menu-item" onclick="openModal('privacy-modal')">
-                        <i data-lucide="shield"></i> 
+                    <a href="privacy.html" class="button menu-item" style="text-decoration: none;">
+                        <i data-lucide="shield"></i>
                         <span>Privacy</span>
-                    </button>
+                    </a>
 
                     <!-- Feedback (Placeholder) -->
-                    <button class="menu-item">
+                    <button class="menu-item" id="btn-open-feedback">
                         <i data-lucide="message-square"></i> 
                         <span>Send feedback</span>
                     </button>
@@ -1139,6 +1139,23 @@
 
                 <div class="modal-body" id="library-content-grid">
                     <!-- Private items injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback Modal -->
+        <div id="feedback-modal" class="modal-overlay">
+            <div class="modal-card" style="max-width: 550px; height: 80vh; padding: 0; overflow: hidden; border-radius: 28px;">
+                <div class="modal-header" style="padding: 20px 24px; border-bottom: 1px solid #f0f4f9; display: flex; justify-content: space-between; align-items: center; background: white;">
+                    <div>
+                        <h3 class="text-lg font-bold m-0">Send Feedback</h3>
+                        <p class="text-[10px] text-gray-500 m-0 uppercase tracking-widest">Direct to Founding Team</p>
+                    </div>
+                    <button onclick="closeAllModals()" class="icon-btn"><i data-lucide="x"></i></button>
+                </div>
+                <div class="modal-body" style="padding: 0; height: calc(100% - 75px); background: #f8f9fa;">
+                    <!-- Iframe starts empty, JS will fill it -->
+                    <iframe id="feedback-iframe" src="" width="100%" height="100%" frameborder="0" marginheight="0" marginwidth="0" style="border:none;">Loading…</iframe>
                 </div>
             </div>
         </div>
