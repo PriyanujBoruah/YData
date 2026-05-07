@@ -81,7 +81,6 @@ body { background: var(--bg); color: var(--text); }
     color: #1f1f1f;
     cursor: pointer;
     transition: background 0.2s;
-    width: 100%;
     text-align: left;
 }
 
@@ -4318,7 +4317,6 @@ button {
 
 /* 5. Menu / List Items (Sidebar & Dropdowns) */
 .menu-item {
-    width: 100%;
     padding: 8px 12px;
     border-radius: 6px;
     font-size: small;
@@ -4326,6 +4324,11 @@ button {
     color: #1f1f1f;
     justify-content: flex-start; /* Left aligned */
     text-align: left;
+}
+
+#btn-settings-sidebar {
+    width: 100%;
+    justify-content: center;
 }
 
 .menu-item:hover {
