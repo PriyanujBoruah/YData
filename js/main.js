@@ -182,7 +182,7 @@ async function init() {
             lucide.createIcons();
             setupEventListeners();
 
-            console.log("DVantage SaaS: Online & Database Initialized");
+            console.log("Krata AI: Online & Database Initialized");
         } catch (err) {
             console.error("Critical Boot Error:", err);
             // If it fails, we reset flags so user can try again or refresh
