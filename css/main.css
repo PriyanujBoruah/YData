@@ -8,7 +8,7 @@
 
 body {
     margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    background: var(--bg-color); color: var(--text-main);
+    background: #F8F8F6; color: var(--text-main);
     display: flex; flex-direction: column; height: 100vh; overflow: hidden;
     -webkit-font-smoothing: antialiased; /* Makes Inter look crisp */
     -moz-osx-font-smoothing: grayscale;
@@ -40,7 +40,7 @@ body {
     --pill-bg: #282a2c;
 }
 
-body { background: var(--bg); color: var(--text); }
+body { background: #F8F8F6; color: var(--text); }
 
 /* Sidebar Footer */
 .sidebar-footer {
@@ -90,7 +90,7 @@ body { background: var(--bg); color: var(--text); }
 }
 
 .settings-menu .menu-item:hover {
-    background: #e3e8ef;
+    background: #EFEEEB;
 }
 
 [data-theme='dark'] .settings-menu .menu-item { color: #e3e3e3; }
@@ -228,7 +228,7 @@ h2 { font-weight: 600; font-size: 40px; color: #c4c7c5; margin-top: 5px; }
 }
 
 #input-pill {
-    width: 90%; max-width: 800px; background: transparent;
+    width: 90%; max-width: 800px; background: #ffffff;
     border-radius: 30px; padding: 15px 20px;
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
@@ -244,7 +244,7 @@ textarea {
 
 .left-group, .right-group { display: flex; gap: 8px; align-items: center; }
 
-.icon-btn:hover { background: #e1e5ea; }
+.icon-btn:hover { background: #EFEEEB; }
 .icon-btn span { font-size: 14px; font-weight: 500; margin-left: 5px; }
 
 .hidden { display: none; }
@@ -406,7 +406,7 @@ textarea {
 
 
 .sidebar {
-    width: 260px; height: 100vh; background: #F9FBFD;
+    width: 260px; height: 100vh; background: #F8F8F6;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0; display: flex; flex-direction: column;
     border: 1px solid #e3e3e3;
@@ -595,7 +595,7 @@ textarea {
     padding: 12px 0;
 }
 
-.menu-item:hover { background: #f0f4f9; }
+.menu-item:hover { background: #EFEEEB; }
 
 .menu-item i { width: 18px; height: 18px; }
 
@@ -1461,7 +1461,7 @@ textarea {
         bottom: 0;
         z-index: 9999;
         width: 280px !important;
-        background: #F9FBFD;
+        background: #F8F8F6;
         transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 10px 0 30px rgba(0,0,0,0.1);
     }
@@ -1672,7 +1672,7 @@ html, body {
 
 /* Modals should not affect the DOM flow */
 .modal-card {
-    background: white;
+    background: #F8F8F6;
     max-width: 600px;
     width: 90%;
     border-radius: 16px;
@@ -2105,17 +2105,27 @@ main {
     cursor: pointer; display: flex; align-items: center; gap: 10px;
     color: #444746; transition: 0.2s;
 }
-.kratabook-item:hover { background: #e3e8ef; }
+.kratabook-item:hover { background: #EFEEEB; }
 
 #kratabook-view {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: #fcfcfc; z-index: 120; display: flex; flex-direction: column;
+    background: #F8F8F6; z-index: 120; display: flex; flex-direction: column;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #kratabook-view .secondary-btn {
     padding: 8px 12px;
     max-width: min-content;
+    background: transparent;
+    border-color: #D2D0CD;
+    color: #1f1f1f;
+    border-radius: 6px;
+    border-width: 2px;
+}
+
+#kratabook-view .secondary-btn:hover {
+    background: #D2D0CD;
+    color: #1f1f1f;
 }
 
 #kratabook-view .secondary-btn svg {
@@ -2582,7 +2592,7 @@ main {
     align-items: flex-start;
     gap: 12px;
     padding: 20px;
-    background: #ffffff;
+    background: #F8F8F6;
     border: 2px solid transparent;
     border-radius: 12px;
     cursor: pointer;
@@ -2590,7 +2600,7 @@ main {
 }
 
 .persona-card:hover {
-    background: #ffffff;
+    background: #EFEEEB;
     border-color: #d1d5db;
     box-shadow: 0 8px 20px rgba(0,0,0,0.06);
 }
@@ -2604,7 +2614,7 @@ main {
     content: "";
     position: absolute; 
     inset: 0px;
-    background: conic-gradient(from 90deg at 40% -25%, #ffd700, #f79d03, #ee6907, #e6390a, #de0d0d, #d61039, #cf1261, #c71585, #cf1261, #d61039, #de0d0d, #ee6907, #f79d03, #ffd700, #ffd700, #ffd700);
+    background: conic-gradient(from 90deg at 40% -25%, #ffd700, #f79d03, #ee6907, #92e60a, #0dde61, #10d61a, #3ecf12, #8cc715, #cf7412, #d68a10, #0dde18, #ee6907, #f79d03, #ffd700, #ffd700, #ffd700);
     filter: blur(10px);
     transform: translate3d(0px,0px,-1px);
     border-radius: inherit;
@@ -2646,7 +2656,7 @@ main {
     content: "";
     position: absolute; 
     inset: 0px;
-    background: linear-gradient(60deg, #4285f4, #d96570, #9b51e0, #34a853, #4285f4);
+    background: linear-gradient(60deg, #51f442, #d99965, #e0ac51, #34a853, #a4f442);
     background-size: 300% 300%;
     border-radius: 26px;
     filter: blur(14px);
@@ -2727,8 +2737,8 @@ main {
 }
 
 .data-selector-pill:hover {
-    background: #e3e8ef;
-    border-color: #e3e8ef;
+    background: #EFEEEB;
+    border-color: #EFEEEB;
 }
 
 [data-theme='dark'] .data-selector-pill {
@@ -2974,7 +2984,7 @@ main {
 .response-text p { margin-bottom: 16px; }
 
 .right-group .icon-btn:hover {
-    background: #e8f0fe;
+    background: #EFEEEB;
     color: #0b57d0;
 }
 
@@ -3117,9 +3127,9 @@ main {
 #active-persona-display {
     background: linear-gradient(
         to right,
-        #4285f4 20%,
-        #d96570 30%,
-        #9b51e0 70%,
+        #d99965 20%,
+        #51f442 30%,
+        #e0ac51 70%,
         #34a853 80%
     );
     -webkit-background-clip: text;
@@ -3474,7 +3484,7 @@ main {
     position: absolute;
     top: -3px; left: -3px; right: -3px; bottom: -3px;
     /* Gemini Brand Colors Gradient */
-    background: linear-gradient(60deg, #4285f4, #d96570, #9b51e0, #34a853, #4285f4);
+    background: linear-gradient(60deg, #51f442, #d99965, #e0ac51, #34a853, #a4f442);
     background-size: 300% 300%;
     border-radius: 26px;
     filter: blur(14px);
@@ -4259,12 +4269,12 @@ button {
     font-weight: 500;
     padding: 6px 12px;
     border-radius: 6px; /* High rounding */
-    border: 2px solid #e3e8ef;
+    border: 2px solid #D2D0CD;
     width: auto;
 }
 
 .primary-btn:hover {
-    background-color: #e3e8ef;
+    background-color: #D2D0CD;
 }
 
 .primary-btn svg {
@@ -4306,7 +4316,7 @@ button {
 }
 
 .icon-btn:hover {
-    background-color: #e3e8ef;
+    background-color: #EFEEEB;
     color: #1f1f1f;
 }
 
@@ -4332,7 +4342,7 @@ button {
 }
 
 .menu-item:hover {
-    background-color: #e3e8ef;
+    background-color: #EFEEEB;
 }
 
 .menu-item i, .menu-item svg {
@@ -4519,14 +4529,14 @@ input[type="radio"]:focus {
 
 /* Highlight the whole card when the inner radio is checked */
 .radio-card:has(input[type="radio"]:checked) {
-    background-color: #f3e8ff; /* Soft M3 Purple */
-    border-color: #6002ee;
+    background-color: #EFEEEB; /* Soft M3 Purple */
+    border-color: #D2D0CD;
     box-shadow: 0 2px 8px rgba(96, 2, 238, 0.1);
 }
 
 .radio-card:hover {
-    border-color: #0b57d0;
-    background-color: #f8f9fa;
+    border-color: #D2D0CD;
+    background-color: transparent;
 }
 
 /* ============================================================
@@ -4914,7 +4924,7 @@ input[type="radio"]:focus {
     justify-content: center;
     gap: 10px;
     padding: 15px;
-    background: white;
+    background: #F8F8F6;
     border-bottom: 1px solid #eee;
 }
 
@@ -4932,7 +4942,7 @@ input[type="radio"]:focus {
 }
 
 .filter-pill.active {
-    background: #e3e8ef;
+    background: #D2D0CD;
     color: #1f1f1f;
 }
 
