@@ -6,28 +6,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 
-    <title>Krata AI</title>
+    <title>YData</title>
 
     <link rel="stylesheet" href="/css/main.css">
 
-    <!-- Lucide Icons for that Gemini look -->
+    <!-- Lucide Icons - Icon Library -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Ploty.js - Secondary Visualization Library -->
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
 
+    <!-- Sheet.js - Excel Compatible Spreadsheet Library -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 
+    <!-- AG Grid Community version - Table & Spreadsheet Viewer Library -->
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community/dist/ag-grid-community.min.js"></script>
 
+    <!-- Supabase - Auth, Storage & Profiles Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <!-- Marked.js - Markdown Viewer Library -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
+    <!-- Tesseract - OCR Library -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <!-- PDF.js - PDF Ingestion Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
-    <!-- PDF Export Library -->
+    <!-- HTML2PDF.js - PDF Export Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+    <!-- Google Fonts for Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -35,10 +45,11 @@
 </head>
 <body>
 
+    <!-- The Authenticator -->
     <div id="auth-overlay" class="auth-screen">
         <div class="auth-card">
             <div class="auth-header">
-                <h1 class="gemini-gradient">Krata AI</h1>
+                <h1 class="gemini-gradient">YData</h1>
                 <p id="auth-subtitle">Sign in to access your local data vault.</p>
             </div>
 
@@ -71,6 +82,7 @@
 
     <!-- The Sidebar -->
     <aside id="app-sidebar" class="sidebar">
+        <!-- Sidebar Top -->
         <div class="sidebar-header">
             <button id="sidebar-toggle" class="icon-btn">
                 <i data-lucide="panel-left-close"></i>
@@ -78,14 +90,14 @@
             <span class="sidebar-title">Menu</span>
         </div>
 
+        <!-- Sidebar Content -->
         <div class="sidebar-features">
-            <!-- Add id="sidebar-spreadsheet-btn" -->
             <button id="sidebar-spreadsheet-btn" class="menu-item">
                 <i data-lucide="table-2"></i> <span class="nav-text">Spreadsheet Mode</span>
             </button>
             
             <button id="sidebar-personas-btn" class="menu-item persona-highlight">
-                <i data-lucide="user-circle"></i> <span class="nav-text">Personas</span>
+                <i data-lucide="user-circle"></i> <span class="nav-text">Workforce</span>
             </button>
 
             <button id="sidebar-library-btn" class="menu-item">
@@ -93,19 +105,20 @@
             </button>
 
             <button id="sidebar-workspace-btn" class="menu-item text-blue-600">
-                <i data-lucide="layout-dashboard"></i> <span class="nav-text">Workspace</span>
+                <i data-lucide="layout-dashboard"></i> <span class="nav-text">YSpace</span>
             </button>
 
             <button id="btn-create-kratabook" class="menu-item kratabook-btn">
-                <i data-lucide="book-plus"></i> <span class="nav-text">Create KrataBook</span>
+                <i data-lucide="book-plus"></i> <span class="nav-text">Create YBook</span>
             </button>
 
-            <div class="sidebar-section-label nav-text">KrataBooks</div>
+            <div class="sidebar-section-label nav-text">YBooks</div>
             <div id="kratabook-list" class="sidebar-list">
                 <!-- Saved reports will appear here -->
             </div>
         </div>
 
+        <!-- Sidebar Bottom -->
         <div class="sidebar-footer">
             <div class="menu-wrapper">
                 <button id="btn-settings-sidebar" class="menu-item">
@@ -115,20 +128,19 @@
                 
                 <!-- Settings Dropdown -->
                 <div id="settings-dropdown" class="dropdown-menu settings-menu hidden">
-                    <!-- Privacy Tool Shortcut -->
                     <a href="privacy.html" class="button menu-item" style="text-decoration: none;">
                         <i data-lucide="shield"></i>
                         <span>Privacy</span>
                     </a>
 
-                    <!-- Feedback (Placeholder) -->
                     <button class="menu-item" id="btn-open-feedback">
                         <i data-lucide="message-square"></i> 
                         <span>Send feedback</span>
                     </button>
 
                     <!-- Theme Section with Toggle -->
-<!--                <div class="menu-item-row">
+<!--
+                    <div class="menu-item-row">
                         <div class="flex items-center gap-3">
                             <i data-lucide="sun-moon"></i>
                             <span>Theme</span>
@@ -137,9 +149,9 @@
                             <input type="checkbox" id="dark-mode-toggle">
                             <span class="slider round"></span>
                         </label>
-                    </div> -->
+                    </div> 
+-->
 
-                    <!-- Agentic Background (Vault Status) -->
                     <button class="menu-item" onclick="window.dispatchEvent(new CustomEvent('open-agentic-bg'))">
                         <i data-lucide="sparkles"></i> 
                         <span>Agentic Background</span>
@@ -154,12 +166,12 @@
                         <span>Sign out</span>
                     </button>
 
-                    <!-- Status Footer (The "Location" lookalike) -->
+                    <!-- Status Footer -->
                     <div class="menu-status-footer">
                         <div class="status-dot"></div>
                         <div class="status-info">
-                            <strong>Krata AI Companion</strong>
-                            <span>Part of Krata AI Enterprise Edition</span>
+                            <strong>YData Companion</strong>
+                            <span>Part of YData Enterprise Edition</span>
                         </div>
                     </div>
                 </div>
@@ -168,17 +180,21 @@
 
     </aside>
 
-    <!-- Main Chat Area -->
+    <!-- Main Content Area -->
     <main id="chat-container">
-        <!-- NEW TOP NAVIGATION -->
+        <!-- Top Navigation -->
         <header class="top-nav">
             <div class="nav-left">
-                <span class="brand-logo">Krata AI</span>
+                <span class="brand-logo">YData</span>
             </div>
+
+            <!-- Navigation Persona Section -->
             <div class="nav-center">
                 <!-- This will dynamically change based on the active Persona -->
                 <span id="active-persona-display">Data Analyst</span>
             </div>
+
+            <!-- Navigation Right Corner -->
             <div class="nav-right">
                 <button class="icon-btn" id="btn-top-headsup" title="Data Explorer">
                     <i data-lucide="share-2"></i>
@@ -188,13 +204,13 @@
                         <i data-lucide="more-vertical"></i>
                     </button>
                     
-                    <!-- The Dropdown -->
+                    <!-- Icon Menu Dropdown -->
                     <div id="menu-top-options" class="dropdown-menu top-menu hidden">
                         <button class="menu-item" id="btn-top-persona">
                             <i data-lucide="user-circle"></i> <span>Persona</span>
                         </button>
                         <button class="menu-item" id="btn-top-kratabook">
-                            <i data-lucide="book-plus"></i> <span>KrataBook</span>
+                            <i data-lucide="book-plus"></i> <span>YBook</span>
                         </button>
                         <button class="menu-item" id="btn-top-settings">
                             <i data-lucide="settings"></i> <span>Settings</span>
@@ -205,6 +221,7 @@
                         </button>
                     </div>
                 </div>
+
                 <!-- User Profile Menu -->
                 <div class="menu-wrapper">
                     <div id="user-avatar-circle" class="user-avatar cursor-pointer shadow-sm hover:ring-2 hover:ring-blue-200 transition-all">U</div>
@@ -248,6 +265,7 @@
             </div>
         </header>
 
+        <!-- Main Chat Area -->
         <div id="chat-history-container">
             <div id="intro-screen">
                 <h1 style="font-weight: 400; font-size: 24px;">Hi User</h1>
@@ -289,7 +307,7 @@
             <div id="proactive-insights-container" class="hidden">
                 <div class="insight-label">Proactive Suggestions</div>
                 <div id="proactive-pills">
-                    <!-- AI Pills will be injected here -->
+                    <!-- AI Proactive Insight Pills will be injected here -->
                 </div>
             </div>
             <div id="messages"></div>
@@ -298,15 +316,17 @@
         <!-- The Bottom Command Center -->
         <div id="input-wrapper">
             <div id="input-pill">
-                <textarea id="user-prompt" placeholder="Ask Krata AI..." rows="1"></textarea>
+                <textarea id="user-prompt" placeholder="Ask YData..." rows="1"></textarea>
                 
                 <div id="pill-actions">
                     <div class="left-group">
-                        <!-- DATABASE MENU -->
+                        <!-- Database Menu -->
                         <div class="menu-wrapper">
                             <button class="icon-btn" id="btn-database" title="Data Management">
                                 <i data-lucide="database"></i>
                             </button>
+
+                            <!-- Database Menu Dropdown -->
                             <div id="menu-database" class="dropdown-menu hidden">
                                 <div class="dropdown-header">Data Management</div>
                                 <button class="menu-item" onclick="document.getElementById('file-picker').click()">
@@ -326,11 +346,13 @@
                             </div>
                         </div>
 
-                        <!-- TOOLS MENU -->
+                        <!-- Tools Menu -->
                         <div class="menu-wrapper">
                             <button class="icon-btn" id="btn-tools" title="Advanced Tools">
                                 <i data-lucide="wrench"></i>
                             </button>
+
+                            <!-- Tools Menu Dropdown -->
                             <div id="menu-tools" class="dropdown-menu hidden">
                                 <div class="dropdown-header">Analysis Lab</div>
                                 <button class="menu-item" id="menu-viz"><i data-lucide="bar-chart-3"></i> Visualization</button>
@@ -345,13 +367,13 @@
 
                     <div class="right-group">
                         <div class="menu-wrapper">
-                            <!-- The Selector Button -->
+                            <!-- Dataset/Table Selector Button -->
                             <button id="btn-data-selector" class="data-selector-pill">
                                 <span id="active-data-label">Select Data</span>
                                 <i data-lucide="chevron-down" class="w-4 h-4 opacity-50"></i>
                             </button>
                             
-                            <!-- The Dropdown Menu -->
+                            <!-- Dataset/Table Selector Dropdown Menu -->
                             <div id="data-dropdown" class="dropdown-menu data-menu hidden">
                                 <div class="dropdown-header">Available Datasets</div>
                                 <div id="data-list-container">
@@ -369,7 +391,7 @@
                     </div>
                 </div>
             </div>
-            <p class="disclaimer">Krata AI is an AI and can make mistakes. Verify important data.</p>
+            <p class="disclaimer">YData is an AI and can make mistakes. Verify important data.</p>
         </div>
 
         <!-- Hidden File Picker -->
@@ -394,7 +416,7 @@
             </div>
         </div>
 
-        <!-- Diagram Intelligence Lab Modal -->
+        <!-- Visualization Modal -->
         <div id="viz-modal" class="overlay-hidden">
             <div class="modal-card viz-large viz-modal-card">
                 <div class="modal-header border-b pb-4 viz-modal-header">
@@ -410,7 +432,7 @@
                     <div class="modal-body pt-4 viz-modal-body">
                         <div class="form-group mb-6">
                             <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Select Diagram Archetype</label>
-                            <!-- 🚀 UNIVERSAL ICON-ENABLED DROPDOWN -->
+                            <!-- Icon-enabled dropdown -->
                                 <div class="custom-dropdown" id="viz-dropdown">
                                     <!-- The visible button that triggers the menu -->
                                     <div class="dropdown-trigger" id="viz-dropdown-trigger">
@@ -481,16 +503,16 @@
                                 </div>
                         </div>
 
-                        <!-- Goal Input remains the same, but now it has more room -->
+                        <!-- Goal Input -->
                         <div class="form-group">
                             <label class="font-semibold text-gray-700">What is your visualization goal?</label>
                             <textarea id="viz-goal" class="custom-select mt-3" rows="4" placeholder="e.g. Map out the relationship between regions and revenue, or identify funnel drop-offs..."></textarea>
-                            <p class="text-[10px] text-gray-400 mt-2 italic">Krata AI will analyze your data and write the diagram code automatically.</p>
+                            <p class="text-[10px] text-gray-400 mt-2 italic">YData will analyze your data and write the diagram code automatically.</p>
                         </div>
                     </div>
 
                     
-                    <!-- Footer -->
+                    <!-- Modal Footer -->
                     <div class="modal-footer border-t pt-4 mt-2 viz-modal-footer">
                         <button id="btn-generate-viz" class="primary-btn">Generate Visual Intelligence</button>
                     </div>
@@ -500,7 +522,7 @@
                 <div id="viz-result-view" class="hidden">
                     <div class="modal-body viz-modal-body">
                         
-                        <!-- 🚀 MOVED: Iteration Pill now at the top -->
+                        <!-- Iteration Pill -->
                         <div class="iteration-wrapper mb-6">
                             <div class="iteration-input-pill">
                                 <input type="text" id="viz-refine-input" placeholder="Refine this diagram (e.g., 'make it vertical', 'add colors')...">
@@ -520,14 +542,14 @@
                             <i data-lucide="arrow-left"></i> <span>Edit</span>
                         </button>
                         
-                        <div class="flex-1"></div> <!-- Optional: adds space between back and action buttons -->
+                        <div class="flex-1"></div> <!-- adds space between back and action buttons -->
 
                         <button id="btn-viz-library" class="secondary-btn">
                             <i data-lucide="bookmark"></i> <span>Library</span>
                         </button>
 
                         <button id="btn-viz-workspace" class="secondary-btn">
-                            <i data-lucide="layout-dashboard"></i> <span>Workspace</span>
+                            <i data-lucide="layout-dashboard"></i> <span>YSpace</span>
                         </button>
 
                         <!-- Export Button -->
@@ -735,9 +757,9 @@
             </div>
         </div>
 
+        <!-- Spreadsheet View Modal -->
         <div id="spreadsheet-view" class="view-hidden">
             <div class="view-header">
-                <!-- The header is now a single functional toolbar -->
                 <div class="header-toolbar-left">
                     <button id="close-spreadsheet" class="icon-btn" title="Back to Chat">
                         <i data-lucide="arrow-left"></i>
@@ -798,7 +820,7 @@
                         <div class="flex gap-4">
                             <label class="radio-card flex-1">
                                 <input type="radio" name="kb-branding" value="krata" checked>
-                                <span class="font-bold" style="font-size: medium;">Krata AI</span>
+                                <span class="font-bold" style="font-size: medium;">YData</span>
                                 <span class="text-xs text-gray-500" style="font-size: small;">Professional analytical branding.</span>
                             </label>
 
@@ -999,11 +1021,11 @@
                 <!-- Unified Vertical Layout -->
                 <div class="modal-body headsup-body">
                     
-                    <!-- 🚀 UNIVERSAL DROPDOWN HEADER -->
+                    <!-- Universal Dropdown Header -->
                     <div id="headsup-toolbar">
                         <select id="headsup-select" class="custom-select"></select>
                         <div class="headsup-actions">
-                            <!-- 🚀 NEW: SAVE LOCALLY BUTTON -->
+                            <!-- Save Locally Button -->
                             <button id="btn-save-headsup" class="icon-btn p-2 text-blue-600" title="Save Locally">
                                 <i data-lucide="download" class="w-4 h-4"></i>
                             </button>
@@ -1063,12 +1085,12 @@
             </div>
         </div>
 
-        <!-- Workspace Modal -->
+        <!-- YSpace Modal -->
         <div id="workspace-modal" class="modal-overlay">
             <div class="modal-card viz-large">
                 <div class="modal-header border-b pb-4">
                     <div>
-                        <h3 class="text-xl font-bold">Team Workspace</h3>
+                        <h3 class="text-xl font-bold">Team YSpace</h3>
                         <p class="text-xs text-gray-500">Shared intelligence, charts, and reports.</p>
                     </div>
                     <button onclick="closeAllModals()" class="icon-btn"><i data-lucide="x"></i></button>
@@ -1107,7 +1129,7 @@
                     <div class="form-group mb-4">
                         <label class="text-sm font-bold text-gray-700 block mb-2">Organization Name</label>
                         <input type="text" id="edit-org" class="custom-select" placeholder="Enter organization">
-                        <p class="text-[10px] text-orange-500 mt-2 italic">Note: Changing your Org Name will move your data to a new workspace vault.</p>
+                        <p class="text-[10px] text-orange-500 mt-2 italic">Note: Changing your Org Name will move your data to a new YSpace vault.</p>
                     </div>
                 </div>
 
@@ -1167,7 +1189,7 @@
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ 
             startOnLoad: false, 
-            suppressErrorRendering: true, // 🚀 This stops the floating error bubble
+            suppressErrorRendering: true, // This stops the floating error bubble
             securityLevel: 'loose',
             theme: 'base',
             themeVariables: {
@@ -1187,7 +1209,7 @@
     <script type="module" src="/js/main.js"></script>
 
     <script>
-        // 🚀 ONLY register SW on production (Vercel), NOT on localhost
+        // Only register SW on production (Vercel), not on localhost
         if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
             window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
