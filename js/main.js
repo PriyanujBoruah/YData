@@ -182,7 +182,7 @@ async function init() {
             lucide.createIcons();
             setupEventListeners();
 
-            console.log("Krata AI: Online & Database Initialized");
+            console.log("YData: Online & Database Initialized");
         } catch (err) {
             console.error("Critical Boot Error:", err);
             // If it fails, we reset flags so user can try again or refresh
@@ -319,7 +319,7 @@ function setupEventListeners() {
         } catch (err) {
             console.error("Ingestion Error:", err);
             addSystemMessage(`❌ Ingestion Failed: ${err.message}`, true);
-            userPrompt.placeholder = "Ask Krata AI...";
+            userPrompt.placeholder = "Ask YData AI...";
         }
     });
 
@@ -592,7 +592,7 @@ function setupEventListeners() {
             if (state.activeTable === tableName) state.activeTable = state.allTables.length > 0 ? state.allTables[0] : null;
             refreshHeadsUpList(state.allTables);
             updateDataSelector(state);
-            userPrompt.placeholder = state.activeTable ? `Ask about ${state.activeTable}...` : "Ask Krata AI...";
+            userPrompt.placeholder = state.activeTable ? `Ask about ${state.activeTable}...` : "Ask YData AI...";
             
             if (!state.activeTable) document.getElementById('intro-screen').style.display = 'block';
 
@@ -856,7 +856,7 @@ async function handleSendMessage() {
 
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="Krata AI">
+            <img src="assets/logo.png" alt="YData">
         </div>
         <div class="bubble w-full">
             <details class="sql-debug hidden">
@@ -968,7 +968,7 @@ function renderChartInChat(config) {
     msgDiv.className = 'message bot-message';
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="Krata AI">
+            <img src="assets/logo.png" alt="YData">
         </div>
         <div class="bubble">
             <p>Analysis Result: <strong>${config.title}</strong></p>
@@ -1014,7 +1014,7 @@ function addSystemMessage(text, isError = false) {
     const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     div.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="Krata AI">
+            <img src="assets/logo.png" alt="YData">
         </div>
         <div class="bubble">${formattedText}</div>
     `;
@@ -1042,7 +1042,7 @@ async function handleNarrator() {
     msgDiv.className = 'message bot-message narrator-container'; // Special class
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="Krata AI">
+            <img src="assets/logo.png" alt="YData">
         </div>
         <div class="bubble premium-report">
             <div class="report-header">
@@ -1155,7 +1155,7 @@ window.viewKrataBook = async (id) => {
     `;
 
     // 4. Define the Branding Header (for the document content)
-    let headerHtml = `<div class="text-xs text-gray-400 mb-4 border-b pb-2">Krata AI Intelligence Report</div>`;
+    let headerHtml = `<div class="text-xs text-gray-400 mb-4 border-b pb-2">YData Intelligence Report</div>`;
     
     if (book.metadata?.branding === 'agentic') {
         headerHtml = `
@@ -1241,7 +1241,7 @@ function createIngestionProgressCard(fileName) {
     const idPrefix = 'ingest-' + Date.now();
     
     msgDiv.innerHTML = `
-        <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
+        <div class="bot-avatar"><img src="assets/logo.png" alt="YData"></div>
         <div class="bubble">
             <div class="ingestion-card">
                 <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Neural Ingestion: ${fileName}</div>
@@ -1323,7 +1323,7 @@ async function triggerIntelligenceCheckup(tableName) {
     msgDiv.className = 'message bot-message';
     
     msgDiv.innerHTML = `
-        <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
+        <div class="bot-avatar"><img src="assets/logo.png" alt="YData"></div>
         <div class="bubble">
             <div class="ingestion-card" style="max-width: 550px; padding: 24px; border-radius: 24px; border: 1px solid #eef2f6;">
                 <h3 class="text-sm font-bold mb-6 flex items-center gap-2">
