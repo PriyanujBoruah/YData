@@ -1,22 +1,27 @@
 // js/core/utils.js
 
-/**
- * Enhanced fetch with automatic retry for Rate Limits (429) 
- * and Server Errors (5xx).
- */
-export async function fetchWithRetry(url, options, retries = 3, backoff = 2000) {
+export async function fetchWithRetry(url, options, retries = 4, backoff = 3000) {
     try {
         const response = await fetch(url, options);
 
-        // If Rate Limited (429) or Server Error (500, 502, 503, 504)
-        if (response.status === 429) {
+        // 503 and 504 mean the server is melting. 429 means you are too fast.
+        const retryCodes = [429, 503, 504]; 
+
+        if (retryCodes.includes(response.status)) {
             if (retries > 0) {
-                // Dispatch a custom event that main.js can listen to
+                const statusMsg = response.status === 429 
+                    ? "Rate limit reached. Pausing..." 
+                    : "Mistral servers are overloaded. Retrying with fallback pathways...";
+
                 window.dispatchEvent(new CustomEvent('agent-status-update', { 
-                    detail: "Rate limit reached. Cooling down for a moment..." 
+                    detail: statusMsg 
                 }));
                 
-                await new Promise(resolve => setTimeout(resolve, backoff));
+                // 🚀 ADD JITTER: Randomness prevents "sync-lock" with the server
+                const jitter = Math.random() * 1000; 
+                await new Promise(resolve => setTimeout(resolve, backoff + jitter));
+                
+                // Retry with longer wait
                 return fetchWithRetry(url, options, retries - 1, backoff * 2);
             }
         }
