@@ -1,4 +1,5 @@
 // js/main.js
+
 import { initDatabase, registerFile, runQuery, registerFromURL, getTableSchema, loadTableFromParquet  } from './core/database.js';
 import { showTablePreview, hideTablePreview } from './ui/overlays.js';
 import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights  } from './core/ai-agent.js';
@@ -117,7 +118,7 @@ async function init() {
 
         if (emailDisplay) emailDisplay.innerText = email;
         
-        // 🚀 NEW: Show Admin Badge if applicable
+        // Show Admin Badge if applicable
         if (greetingDisplay) {
             greetingDisplay.innerHTML = `Hi, ${displayName}! ${role === 'admin' ? 
                 '<span class="badge" style="font-size:10px; vertical-align:middle; margin-left:5px; background: #e8f0fe; color: #0b57d0; padding: 2px 6px; border-radius: 4px; font-weight: 800; border: 1px solid #c2e7ff; text-transform: uppercase;">Admin</span>' 
@@ -138,7 +139,7 @@ async function init() {
             state.isDatabaseReady = true;
 
             // ==========================================
-            // 🚀 NEW: AUTO-LOAD FROM PERSISTENT VAULT
+            // AUTO-LOAD FROM PERSISTENT VAULT
             // ==========================================
             try {
                 const savedTables = await loadAllFromStorage();
@@ -164,7 +165,7 @@ async function init() {
             // ==========================================
 
 
-            // 5. SEQUENTIAL UI LOADING (DB-dependent functions)
+            // 3. SEQUENTIAL UI LOADING (DB-dependent functions)
             // These functions use runQuery(), so they MUST come after await initDatabase()
             initMenus();
             initSidebar();
@@ -178,11 +179,10 @@ async function init() {
             await initAgenticBackground(); 
             await refreshKrataBookSidebar(); 
 
-            // Final Polish
             lucide.createIcons();
             setupEventListeners();
 
-            console.log("YData: Online & Database Initialized");
+            console.log("Krata AI: Online & Database Initialized");
         } catch (err) {
             console.error("Critical Boot Error:", err);
             // If it fails, we reset flags so user can try again or refresh
@@ -218,7 +218,7 @@ function setupEventListeners() {
             let schema = "";
 
             // ==========================================
-            // 🚀 BRANCH 1: MULTIMODAL PIPELINE (IMAGE/PDF)
+            // BRANCH 1: MULTIMODAL PIPELINE (IMAGE/PDF)
             // ==========================================
             if (isMultimodal) {
                 // Initialize the Progress Card
@@ -263,7 +263,7 @@ function setupEventListeners() {
                 progress.updateStep(4, 'completed');
             } 
             // ==========================================
-            // 🚀 BRANCH 2: STRUCTURED PIPELINE (CSV/Excel/JSON/XML)
+            // BRANCH 2: STRUCTURED PIPELINE (CSV/Excel/JSON/XML)
             // ==========================================
             else {
                 await registerFile(file);
@@ -271,16 +271,16 @@ function setupEventListeners() {
             }
 
             // ==========================================
-            // 🚀 COMMON UI UPDATES & PROACTIVE INSIGHTS
+            // COMMON UI UPDATES & PROACTIVE INSIGHTS
             // ==========================================
             state.activeTable = tableName;
             if (!state.allTables.includes(tableName)) state.allTables.push(tableName);
 
-            // 🚀 TRIGGER THE AUTOMATED CHECKUP
+            // TRIGGER THE AUTOMATED CHECKUP
             if (!isMultimodal) {
                 addSystemMessage(`✅ Successfully indexed **${file.name}**.`);
                 
-                // We delay slightly so the user sees the "Indexed" message first
+                // Delayed slightly so the user sees the "Indexed" message first
                 setTimeout(() => triggerIntelligenceCheckup(tableName), 800);
             }
             
@@ -319,11 +319,13 @@ function setupEventListeners() {
         } catch (err) {
             console.error("Ingestion Error:", err);
             addSystemMessage(`❌ Ingestion Failed: ${err.message}`, true);
-            userPrompt.placeholder = "Ask YData AI...";
+            userPrompt.placeholder = "Ask Krata AI...";
         }
     });
 
-    // --- URL Import Listeners ---
+    // ==========================================
+    // URL IMPORT LISTENERS
+    // ==========================================
 
     // 1. Open the Modal from the Dropdown
     const btnImportMenu = document.getElementById('btn-import-url-menu');
@@ -396,7 +398,7 @@ function setupEventListeners() {
         }
     });
 
-    // --- Input Bar UX (Gemini Style) ---
+    // --- Input Bar UX ---
     userPrompt.addEventListener('input', () => {
         userPrompt.style.height = 'auto';
         userPrompt.style.height = (userPrompt.scrollHeight) + 'px';
@@ -532,7 +534,8 @@ function setupEventListeners() {
         });
     }
 
-    // 2. Spreadsheet Listener
+    // --- Spreadsheet Listeners ---
+
     document.getElementById('sidebar-spreadsheet-btn').addEventListener('click', () => {
         if (state.activeTable) {
             openSpreadsheet(state.activeTable);
@@ -541,7 +544,7 @@ function setupEventListeners() {
         }
     });
 
-    // 3. Close Spreadsheet and Search (Already using IDs, which is good)
+    // Close Spreadsheet and Search
     document.getElementById('close-spreadsheet')?.addEventListener('click', closeSpreadsheet);
 
     // --- Persona Listeners ---
@@ -553,7 +556,7 @@ function setupEventListeners() {
     // Listen for the change to show a toast
     window.addEventListener('persona-changed', (e) => {
         addSystemMessage(`AI Identity switched to: **${e.detail}**`);
-        // NEW: Update Top Nav Center Text
+        // Update Top Nav Center Text
         const personaDisplay = document.getElementById('active-persona-display');
         if (personaDisplay) {
             personaDisplay.innerText = e.detail;
@@ -563,13 +566,13 @@ function setupEventListeners() {
     // Initialize the Persona UI logic
     initPersonaUI();
 
-    // Listen for the table switch
+    // --- Table Switch Listener ---
     window.addEventListener('table-switched', (e) => {
         state.activeTable = e.detail;
         userPrompt.placeholder = `Ask about ${state.activeTable}...`;
         updateDataSelector(state);
         
-        // 🚀 NEW: If the chat history is empty, ensure the intro screen is visible
+        // If the chat history is empty, ensure the intro screen is visible
         if (messagesContainer.children.length === 0) {
             document.getElementById('intro-screen').style.display = 'block';
         }
@@ -579,20 +582,20 @@ function setupEventListeners() {
 
     // --- Table Management Logic ---
 
-    // DELETE TABLE
+    // Delete Table
     window.addEventListener('table-deleted', async (e) => {
         const tableName = e.detail;
         try {
             await runQuery(`DROP TABLE "${tableName}"`);
             
-            // 🚀 SYNC: Remove from Persistent Storage
+            // Sync: Remove from Persistent Storage
             await deleteFromStorage(tableName);
             
             state.allTables = state.allTables.filter(t => t !== tableName);
             if (state.activeTable === tableName) state.activeTable = state.allTables.length > 0 ? state.allTables[0] : null;
             refreshHeadsUpList(state.allTables);
             updateDataSelector(state);
-            userPrompt.placeholder = state.activeTable ? `Ask about ${state.activeTable}...` : "Ask YData AI...";
+            userPrompt.placeholder = state.activeTable ? `Ask about ${state.activeTable}...` : "Ask Krata AI...";
             
             if (!state.activeTable) document.getElementById('intro-screen').style.display = 'block';
 
@@ -600,14 +603,14 @@ function setupEventListeners() {
         } catch (err) { alert("Error deleting table: " + err.message); }
     });
 
-    // RENAME TABLE
+    // Rename Table
     window.addEventListener('table-renamed', async (e) => {
         const { oldName, newName } = e.detail;
         const cleanNewName = newName.replace(/[^a-zA-Z0-9]/g, '_');
         try {
             await runQuery(`ALTER TABLE "${oldName}" RENAME TO "${cleanNewName}"`);
             
-            // 🚀 SYNC: Update name in Persistent Storage
+            // Sync: Update name in Persistent Storage
             await renameInStorage(oldName, cleanNewName);
 
             state.allTables = state.allTables.map(t => t === oldName ? cleanNewName : t);
@@ -636,13 +639,13 @@ function setupEventListeners() {
 
     // --- Top Menu: Settings ---
     document.getElementById('btn-top-settings').addEventListener('click', (e) => {
-        // 🚀 THE FIX: Stop the click from bubbling to the global "click-away" listener
+        // Stop the click from bubbling to the global "click-away" listener
         e.stopPropagation(); 
         
-        // 1. Hide the top options menu
+        // Hide the top options menu
         document.getElementById('menu-top-options').classList.add('hidden');
         
-        // 2. Trigger the existing settings logic
+        // Trigger the existing settings logic
         const settingsSidebarBtn = document.getElementById('btn-settings-sidebar');
         if (settingsSidebarBtn) {
             settingsSidebarBtn.click();
@@ -656,7 +659,7 @@ function setupEventListeners() {
         if(confirm("Are you sure you want to clear the chat history?")) {
             messagesContainer.innerHTML = "";
             
-            // 🚀 NEW: Re-show the intro screen when the chat is emptied
+            // Re-show the intro screen when the chat is emptied
             const introScreen = document.getElementById('intro-screen');
             if (introScreen) {
                 introScreen.style.display = 'block';
@@ -680,7 +683,7 @@ function setupEventListeners() {
         document.getElementById('settings-dropdown').classList.add('hidden');
     });
 
-    // 🚀 1. The Sidebar Button: ONLY opens the Configuration Modal
+    // 1. The Sidebar Button: ONLY opens the Configuration Modal
     const btnSidebarKrata = document.getElementById('btn-create-kratabook');
     if (btnSidebarKrata) {
         btnSidebarKrata.addEventListener('click', () => {
@@ -698,7 +701,7 @@ function setupEventListeners() {
         });
     }
 
-    // 🚀 2. The Modal "Generate" Button: Does the actual work
+    // 2. The Modal "Generate" Button: Does the actual work
     const btnConfirmKB = document.getElementById('btn-confirm-generate-kb');
     if (btnConfirmKB) {
         btnConfirmKB.addEventListener('click', async () => {
@@ -724,7 +727,7 @@ function setupEventListeners() {
                         statusText.innerText = "Synthesizing strategic insights..."; 
                 }, 2500);
 
-                // 🚀 CRITICAL: Pass BOTH the table and the config object
+                // Critical: Pass both the table and the config object
                 await createKrataBook(state.activeTable, config);
                 
                 await refreshKrataBookSidebar();
@@ -738,6 +741,8 @@ function setupEventListeners() {
             }
         });
     }
+
+    // --- User Profile Listeners ---
 
     // 1. Open Edit Profile Modal
     document.getElementById('btn-edit-profile').addEventListener('click', async () => {
@@ -778,7 +783,7 @@ function setupEventListeners() {
     });
 
 
-    // --- Profile Logout Listener ---
+    // 3. Logout of Current User Profile
     const btnProfileLogout = document.getElementById('btn-profile-logout');
     if (btnProfileLogout) {
         btnProfileLogout.addEventListener('click', () => {
@@ -787,6 +792,8 @@ function setupEventListeners() {
             }
         });
     }
+
+    // --- Feedback Listener ---
 
     document.getElementById('btn-open-feedback').addEventListener('click', async () => {
         try {
@@ -828,7 +835,7 @@ async function handleSendMessage() {
     const text = userPrompt.value.trim();
     if (!text || !state.isDatabaseReady || !state.activeTable) return;
 
-    // 🚀 Hide the intro screen and proactive insights immediately on first chat
+    // Hide the intro screen and proactive insights immediately on first chat
     const introScreen = document.getElementById('intro-screen');
     const proactiveContainer = document.getElementById('proactive-insights-container');
     
@@ -838,7 +845,7 @@ async function handleSendMessage() {
     // 1. Add User Message
     addUserMessage(text);
     
-    // 2. Lock UI & Show Shimmer
+    // 2. Lock UI & Show Shimmer Effect
     const inputPill = document.getElementById('input-pill');
     userPrompt.value = "";
     userPrompt.style.height = 'auto';
@@ -852,11 +859,11 @@ async function handleSendMessage() {
     // 3. Create Bot Message Shell
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message bot-message';
-    msgDiv.dataset.prompt = text; // 🚀 SAVE PROMPT FOR REGENERATION
+    msgDiv.dataset.prompt = text; // Save prompt for regeneration
 
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="YData">
+            <img src="assets/logo.png" alt="Krata AI">
         </div>
         <div class="bubble w-full">
             <details class="sql-debug hidden">
@@ -868,7 +875,7 @@ async function handleSendMessage() {
             </details>
             <div class="response-text"></div>
             
-            <!-- 🚀 NEW: Chat Action Bar (Hidden during generation) -->
+            <!-- Chat Action Bar (Hidden during generation) -->
             <div class="chat-action-bar hidden">
                 <button class="chat-action-btn" title="Copy Response" onclick="copyChatResponse(this)">
                     <i data-lucide="copy"></i>
@@ -927,7 +934,7 @@ async function handleSendMessage() {
         }
 
         // ==========================================
-        // 🚀 FINAL HYDRATION (AFTER STREAM ENDS)
+        // FINAL HYDRATION (AFTER STREAM ENDS)
         // ==========================================
         
         // 1. Plotly Charts (Handles [CHART_START] JSON blocks)
@@ -950,7 +957,7 @@ async function handleSendMessage() {
         userPrompt.disabled = false;
         userPrompt.placeholder = `Ask about ${state.activeTable}...`;
         
-        // 🚀 NEW: Show the action bar
+        // 5. Show the action bar
         const actionBar = msgDiv.querySelector('.chat-action-bar');
         if(actionBar) actionBar.classList.remove('hidden');
         
@@ -968,7 +975,7 @@ function renderChartInChat(config) {
     msgDiv.className = 'message bot-message';
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="YData">
+            <img src="assets/logo.png" alt="Krata AI">
         </div>
         <div class="bubble">
             <p>Analysis Result: <strong>${config.title}</strong></p>
@@ -1014,7 +1021,7 @@ function addSystemMessage(text, isError = false) {
     const formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     div.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="YData">
+            <img src="assets/logo.png" alt="Krata AI">
         </div>
         <div class="bubble">${formattedText}</div>
     `;
@@ -1042,7 +1049,7 @@ async function handleNarrator() {
     msgDiv.className = 'message bot-message narrator-container'; // Special class
     msgDiv.innerHTML = `
         <div class="bot-avatar">
-            <img src="assets/logo.png" alt="YData">
+            <img src="assets/logo.png" alt="Krata AI">
         </div>
         <div class="bubble premium-report">
             <div class="report-header">
@@ -1062,7 +1069,7 @@ async function handleNarrator() {
 
     let fullStory = "";
     try {
-        // Switch to the NEW advanced stream
+        // Switch to the advanced stream
         for await (const chunk of streamAdvancedNarrative(state.activeTable)) {
             if (chunk.type === 'status') {
                 statusEl.innerText = chunk.content;
@@ -1104,7 +1111,9 @@ window.closeAllModals = () => {
 
 
 
-// KRATABOOKS
+/**
+ * 5. KRATABOOK FUNCTIONS AND HELPERS
+ */
 
 async function refreshKrataBookSidebar() {
     const list = document.getElementById('kratabook-list');
@@ -1120,10 +1129,6 @@ async function refreshKrataBookSidebar() {
     lucide.createIcons();
 }
 
-
-// Sidebar Button Logic
-
-// View Logic
 /**
  * VIEW KRATABOOK
  * Renders the full report and injects the "Share to Workspace" button into the sticky header.
@@ -1155,7 +1160,7 @@ window.viewKrataBook = async (id) => {
     `;
 
     // 4. Define the Branding Header (for the document content)
-    let headerHtml = `<div class="text-xs text-gray-400 mb-4 border-b pb-2">YData Intelligence Report</div>`;
+    let headerHtml = `<div class="text-xs text-gray-400 mb-4 border-b pb-2">Krata AI Intelligence Report</div>`;
     
     if (book.metadata?.branding === 'agentic') {
         headerHtml = `
@@ -1202,7 +1207,7 @@ window.handleShareKrataBookToWorkspace = async (bookId, btn) => {
         
         // Show Success State (Green Check)
         btn.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Added`;
-        btn.style.color = '#137333';       // Google Green
+        btn.style.color = '#137333';
         btn.style.borderColor = '#137333';
         btn.style.background = '#e6f4ea';
         lucide.createIcons();
@@ -1231,8 +1236,9 @@ document.getElementById('close-kratabook').addEventListener('click', () => {
 });
 
 /**
- * UI HELPER: Creates a live-updating ingestion progress card in the chat.
+ * 6. UI HELPER: Creates a live-updating ingestion progress card in the chat.
  */
+
 function createIngestionProgressCard(fileName) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message bot-message';
@@ -1241,7 +1247,7 @@ function createIngestionProgressCard(fileName) {
     const idPrefix = 'ingest-' + Date.now();
     
     msgDiv.innerHTML = `
-        <div class="bot-avatar"><img src="assets/logo.png" alt="YData"></div>
+        <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
         <div class="bubble">
             <div class="ingestion-card">
                 <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Neural Ingestion: ${fileName}</div>
@@ -1288,6 +1294,10 @@ function createIngestionProgressCard(fileName) {
     };
 }
 
+/**
+ * 7. MOVE VISUALS TO CHAT
+ */
+
 window.addEventListener('send-viz-to-chat', (e) => {
     const markdown = e.detail;
     
@@ -1305,17 +1315,18 @@ window.addEventListener('send-viz-to-chat', (e) => {
 });
 
 /**
- * ADVANCED INTELLIGENCE CHECKUP ENGINE
+ * 8. ADVANCED INTELLIGENCE CHECKUP ENGINE
  * Performs Math Forensics, LLM Schema Mapping, and Strategic Discovery.
  */
+
 async function triggerIntelligenceCheckup(tableName) {
     // 1. Run All Diagnostics in Parallel for High Performance
     const [privacy, quality, forensics, whales, schemaMapping] = await Promise.all([
-        silentPrivacyScan(tableName),
-        silentQualityAudit(tableName),
-        runForensicAudit(tableName),    // Advanced: Benford's Law
-        detectWhales(tableName),        // Advanced: Pareto 80/20 Rule
-        getSmartSchemaMapping(tableName) // Advanced: LLM Semantic Translation
+        silentPrivacyScan(tableName),       // PII Shielding
+        silentQualityAudit(tableName),      // Cleaning & Standardization
+        runForensicAudit(tableName),        // Benford's Law
+        detectWhales(tableName),            // Pareto 80/20 Rule
+        getSmartSchemaMapping(tableName)    // LLM Semantic Translation
     ]);
 
     const cardId = `plan-${Date.now()}`;
@@ -1323,7 +1334,7 @@ async function triggerIntelligenceCheckup(tableName) {
     msgDiv.className = 'message bot-message';
     
     msgDiv.innerHTML = `
-        <div class="bot-avatar"><img src="assets/logo.png" alt="YData"></div>
+        <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
         <div class="bubble">
             <div class="ingestion-card" style="max-width: 550px; padding: 24px; border-radius: 24px; border: 1px solid #eef2f6;">
                 <h3 class="text-sm font-bold mb-6 flex items-center gap-2">
@@ -1420,7 +1431,7 @@ async function triggerIntelligenceCheckup(tableName) {
         }
 
         btn.innerText = "Plan Executed";
-        addSystemMessage(`✅ **Intelligence Plan Executed.** ${tableName} is now optimized.`);
+        addSystemMessage(`**Intelligence Plan Executed.** ${tableName} is now optimized.`);
         
         // Clean up icons again since we added new elements
         lucide.createIcons();
@@ -1443,7 +1454,9 @@ async function triggerIntelligenceCheckup(tableName) {
     });
 }
 
-// --- ADVANCED DIAGNOSTIC HELPERS ---
+/**
+ * 9. ADVANCED DIAGNOSTIC HELPERS
+ */
 
 async function getSmartSchemaMapping(tableName) {
     const cols = await runQuery(`PRAGMA table_info('${tableName}')`);
@@ -1518,9 +1531,9 @@ async function applySchemaRenaming(tableName, mapping) {
     }
 }
 
-// ==========================================
-// CHAT ACTION BAR LOGIC
-// ==========================================
+/**
+ * 10. CHAT ACTION BAR LOGIC
+ */
 
 // 1. Copy to Clipboard
 window.copyChatResponse = (btn) => {
@@ -1602,6 +1615,7 @@ window.deleteChatResponse = (btn) => {
     botMsg.remove();
 };
 
+// 4. Add to Library
 window.saveChatToLibrary = async (btn) => {
     const botMsg = btn.closest('.message');
     const prompt = botMsg.dataset.prompt || "Private Insight";
@@ -1619,8 +1633,10 @@ window.saveChatToLibrary = async (btn) => {
 };
 
 /**
- * HELPER: Handles saving a KrataBook to the personal Library with Visual Feedback
+ * 11. KRATABOOK ACTIONS LOGIC
  */
+
+// Handles saving a KrataBook to the personal Library with Visual Feedback
 window.handleSaveKrataBookToLibrary = async (bookId, btn) => {
     // Save original button state for restoration
     const originalHtml = btn.innerHTML;
@@ -1652,7 +1668,7 @@ window.handleSaveKrataBookToLibrary = async (bookId, btn) => {
         btn.style.background = '#e7f1ff';
         if (window.lucide) lucide.createIcons();
         
-        // Restore to original state after 2.5 seconds
+        // 6. Restore to original state after 2.5 seconds
         setTimeout(() => {
             btn.innerHTML = originalHtml;
             btn.style = ''; 
@@ -1671,10 +1687,7 @@ window.handleSaveKrataBookToLibrary = async (bookId, btn) => {
     }
 };
 
-/**
- * EXPORT KRATABOOK TO PDF
- * Converts the report content area into a professional PDF document.
- */
+// Export Kratabook as PDF
 window.exportKrataBookToPDF = async (btn) => {
     const originalHtml = btn.innerHTML;
     const reportElement = document.getElementById('kratabook-content-area');
@@ -1723,6 +1736,7 @@ window.exportKrataBookToPDF = async (btn) => {
     }
 };
 
+// Initialize Global Mermaid.js Engine
 window.processMermaidCharts = processMermaidCharts;
 
 // Start Application
