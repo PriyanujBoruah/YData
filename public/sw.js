@@ -13,6 +13,7 @@ const CORE_ASSETS = [
   '/manifest.json',
   '/assets/icon-192.png',
   '/assets/icon-512.png',
+  '/assets/logo.png',
   'https://unpkg.com/lucide@latest',
   'https://cdn.plot.ly/plotly-2.27.0.min.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap'
