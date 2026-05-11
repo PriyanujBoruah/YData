@@ -22,11 +22,14 @@ export async function initAgenticBackground() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
+    const orgId = user.user_metadata?.org_id;
+    if (!orgId) return;
+
     const { data, error } = await supabaseClient
-        .from('background')
+        .from('Background')
         .select('*')
-        .eq('user_id', user.id)
-        .single(); // We use .single() because there is only 1 row per user
+        .eq('org_id', orgId)
+        .maybeSingle(); // We use .single() because there is only 1 row per user
 
     if (data) {
         currentBackground = data;
@@ -50,6 +53,7 @@ export async function initAgenticBackground() {
         lucide.createIcons();
 
         const updatedData = {
+            org_id: orgId,
             user_id: user.id,
             is_enabled: toggle.checked,
             company_name: companyInput.value.trim(),
@@ -58,7 +62,7 @@ export async function initAgenticBackground() {
         };
 
         // Upsert will insert if missing, or update if user_id exists
-        const { error } = await supabaseClient.from('Background').upsert(updatedData);
+        const { error } = await supabaseClient.from('Background').upsert(updatedData, { onConflict: 'org_id' });
 
         if (error) {
             alert("Failed to save background: " + error.message);
