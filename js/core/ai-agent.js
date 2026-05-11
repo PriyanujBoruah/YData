@@ -10,11 +10,13 @@ const API_URL = "https://api.mistral.ai/v1/chat/completions";
 
 // User's Targeted Model Configuration
 const MODELS = {
-    ROUTER: "mistral-medium-2508",        
-    ENGINEER: "mistral-large-2411",       
-    STRATEGIST: "mistral-medium-2508",    
+    ROUTER: "mistral-small-2506",        
+    ENGINEER: "mistral-small-2506",       
+    STRATEGIST: "mistral-medium-2505",    
     TECH_AUDITOR: "mistral-medium-2508"          
 };
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const bigIntReplacer = (key, value) => 
     typeof value === 'bigint' ? value.toString() : value;
@@ -51,6 +53,9 @@ async function getIntent(userQuestion) {
         })
     });
     const data = await res.json();
+    if (!data || !data.choices || !data.choices[0]) {
+        throw new Error("AI Engine returned an empty response. Please try again.");
+    }
     return JSON.parse(data.choices[0].message.content);
 }
 
@@ -269,6 +274,9 @@ export async function* askAgentStream(userQuestion, activeTable) {
     yield { type: 'status', content: "Understanding intent..." };
     const routing = await getIntent(userQuestion);
 
+    // DELAY after routing
+    await sleep(2000); 
+
     let globalStats = null;
     let sqlResults = "";
     let docContext = "";
@@ -281,12 +289,14 @@ export async function* askAgentStream(userQuestion, activeTable) {
     if (routing.needs_rag || routing.intent === "DOC_CHAT") {
         yield { type: 'status', content: "Searching vector vault for relevant snippets..." };
         docContext = await findRelevantContext(userQuestion);
+        await sleep(1500); // Short delay after vector search
     }
 
     // B. Perform SQL Execution
     if (routing.intent === "EXPLAIN" && activeTable) {
         yield { type: 'status', content: "Performing deep audit on all rows..." };
         globalStats = await getDeepTableProfile(activeTable);
+        await sleep(2000); // Delay to let user read the status
         
         yield { type: 'status', content: "Fetching visual data sample..." };
         const sample = await generateAndRunSQL("Show 10 row sample", schema, activeTable);
@@ -308,6 +318,9 @@ export async function* askAgentStream(userQuestion, activeTable) {
     }
 
     if (sqlUsed) yield { type: 'sql', content: sqlUsed };
+
+    // DELAY before the final brain work
+    await sleep(2000); 
 
     // 3. SYNTHESIZE
     yield { type: 'status', content: "Synthesizing cross-engine insights..." };
