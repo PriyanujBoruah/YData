@@ -23,7 +23,7 @@ export async function initAgenticBackground() {
     if (!user) return;
 
     const { data, error } = await supabaseClient
-        .from('Background')
+        .from('background')
         .select('*')
         .eq('user_id', user.id)
         .single(); // We use .single() because there is only 1 row per user
