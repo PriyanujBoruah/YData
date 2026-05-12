@@ -229,7 +229,7 @@ async function generateAndRunSQL(userQuestion, schema, activeTable, maxRetries =
             
             // If we ran out of retries, return the failure
             if (currentAttempt > maxRetries) {
-                return { success: false, error: error.message, sql: plan.sql };
+                return { success: false, error: "Server is busy. Please try again.", sql: plan.sql };
             }
             // Otherwise, the loop continues and the error is fed back to the LLM to fix the SQL
         }
@@ -407,7 +407,7 @@ export async function* askAgentStream(userQuestion, activeTable) {
         yield { type: 'status', content: "Generating query..." };
         const execution = await generateAndRunSQL(userQuestion, schema, activeTable);
         if (!execution.success) {
-            yield { type: 'error', content: `Database Error: ${execution.error}` };
+            yield { type: 'error', content: "Server is busy. Please try again." };
             return;
         }
         sqlResults = JSON.stringify(execution.data.slice(0, 15), bigIntReplacer);
