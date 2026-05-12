@@ -376,52 +376,454 @@ async function fetchMermaid(systemPrompt, temp = 0.2) {
 
 const AI_ROUTERS = {
     // --- 1. GROWTH & MARKETING ---
-    'funnel': async (ctx) => fetchMermaid(`You are a Growth Marketer. Build a Funnel Diagram using Mermaid 'graph TD'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: A["10k Visitors"] --> B["5k Leads"] --> C["1k Customers"]. Output ONLY raw mermaid code.`, 0.2),
+    'xychart': async (ctx) => fetchMermaid(`
+        TASK: Build an India-localized Bar/Line chart using Mermaid xychart syntax.
+        
+        SYNTAX PATTERN:
+        xychart
+            title "Chart Title"
+            x-axis [Label1, Label2, Label3]
+            y-axis "Y-Axis Title" [Min] --> [Max]
+            bar [val1, val2, val3]
+            line [val1, val2, val3]
 
-    'journey': async (ctx) => fetchMermaid(`You are a UX Analyst. Build a Customer Journey map using Mermaid 'journey'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: journey\\n title Flow\\n section Site\\n Click: 5: User\\n Buy: 3: User. Output ONLY raw mermaid code.`, 0.4),
+        SYNTAX EXAMPLE:
+        xychart
+            title "Monthly Revenue Growth (₹ Lakhs)"
+            x-axis [Apr, May, Jun, Jul, Aug, Sep]
+            y-axis "Revenue in Lakhs" 0 --> 150
+            bar [45, 52, 91, 85, 70, 110]
+            line [45, 52, 91, 85, 70, 110]
 
-    'xychart': async (ctx) => fetchMermaid(`You are a Data Analyst. Build a Bar/Line chart using Mermaid 'xychart-beta'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: xychart-beta\\n title "Sales"\\n x-axis["Jan", "Feb"]\\n bar [10, 20]\\n line[10, 20]. Output ONLY raw mermaid code.`, 0.1),
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
 
-    'pie': async (ctx) => fetchMermaid(`You are a Data Analyst. Build a Pie chart using Mermaid 'pie'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: pie title "Category"\\n "A" : 40\\n "B" : 60. Output ONLY raw mermaid code.`, 0.1),
+        STRICT BHARAT RULES:
+        1. Use Lakhs (L) and Crores (Cr) for large values to align with Indian business reporting.
+        2. Use the ₹ (INR) prefix for currency-related titles or axis labels.
+        3. Prioritize the Indian Fiscal Year (starting April) for the x-axis if months are detected.
+        4. Output ONLY the raw mermaid code. No markdown code blocks, no backticks, and no conversational text.
+        5. Ensure the x-axis labels inside the brackets [ ] are separated by commas or spaces.
+    `),
 
-    'sankey': async (ctx) => fetchMermaid(`You are a Data Analyst. Build a Sankey diagram using Mermaid 'sankey-beta'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: sankey-beta\\n "Source","Target",100\\n "Target","Outcome",50. OUTPUT ONLY RAW MERMAID CODE.`, 0.2),
+    'sankey': async (ctx) => fetchMermaid(`
+        TASK: Build a Bharat-localized Sankey diagram to show distribution or flow.
+        
+        STRICT SYNTAX RULES:
+        1. The first line must be ONLY the word: sankey
+        2. Every data relationship must be on a NEW LINE.
+        3. Format: "Source", "Target", Value
+        CRITICAL: The word "sankey" MUST be on its own line. Use exactly one newline (\\n) before starting data.
+
+        SYNTAX EXAMPLE:
+        sankey
+            "Gross Revenue", "GST (18%)", 180000
+            "Gross Revenue", "Net Realized", 820000
+            "Net Realized", "Logistics", 150000
+            "Net Realized", "Marketing", 200000
+            "Net Realized", "Profit", 470000
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for visualizing Cash Flow, Tax (GST/TDS) breakdowns, or Lead to Sale conversions.
+        2. Ensure values are mapped logically from source to target.
+        3. Output ONLY raw mermaid code. No markdown code blocks.
+    `),
+
+    'journey': async (ctx) => fetchMermaid(`
+        TASK: Build a User Journey map for Indian digital funnels.
+        
+        SYNTAX PATTERN:
+        journey
+            title "Journey Title"
+            section Section Name
+              Task: Score: Actor1, Actor2
+
+        SYNTAX EXAMPLE:
+        journey
+            title "Click-to-WhatsApp Purchase Flow"
+            section Discovery
+              See Instagram Ad: 5: Customer
+              Click 'Message Us': 4: Customer
+            section Engagement
+              WhatsApp Auto-reply: 5: Bot
+              Product Catalog Shared: 3: Bot, Sales_Agent
+            section Conversion
+              UPI Payment Link: 5: Customer
+              Delivery Update: 4: Shiprocket
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Actors should reflect the Indian ecosystem (e.g., Customer, Delivery_Partner, UPI_App, WhatsApp_Bot).
+        2. Satisfaction scores range from 0 to 5.
+        3. Focus on "Trust Points" like UPI payment, COD verification, and vernacular support.
+        4. Output ONLY raw mermaid code.
+    `),
+
+    'pie': async (ctx) => fetchMermaid(`
+        TASK: Build an India-localized Pie chart for distribution analysis.
+        
+        SYNTAX PATTERN:
+        pie title "Chart Title"
+            "Label 1" : Value1
+            "Label 2" : Value2
+
+        SYNTAX EXAMPLE:
+        pie title "Category-wise Sales (₹ Lakhs)"
+            "Smartphones" : 450
+            "Accessories" : 120
+            "Wearables" : 85
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for GST slab distribution (5%, 12%, 18%), Regional splits (Tier 1 vs Tier 2), or Category share.
+        2. Always wrap labels in double quotes (" ").
+        3. If values are large, format them in Lakhs or Crores in the labels.
+        4. Output ONLY the raw mermaid code. No markdown backticks.
+    `),
 
     // --- 2. E-COMMERCE OPERATIONS ---
-    'state': async (ctx) => fetchMermaid(`You are an Ops Manager. Build a State diagram using Mermaid 'stateDiagram-v2'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: stateDiagram-v2\\n [*] --> Pending\\n Pending --> Shipped. Output ONLY raw mermaid code.`, 0.2),
+    'state': async (ctx) => fetchMermaid(`
+        TASK: Build an India-localized Order or Process lifecycle diagram.
+        
+        SYNTAX PATTERN:
+        stateDiagram-v2
+            [*] --> State1
+            State1 --> State2 : Action/Event
+            State2 --> [*]
 
-    'er': async (ctx) => fetchMermaid(`You are a Database Architect. Build an Entity-Relationship diagram using Mermaid 'erDiagram'. Goal: ${ctx.goal}. Schema: ${ctx.schema}
-    SYNTAX: erDiagram\\n ${ctx.tableName} {\\n string col1\\n int col2\\n }. Output ONLY raw mermaid code.`, 0.0),
+        SYNTAX EXAMPLE:
+        stateDiagram-v2
+            [*] --> Order_Placed
+            Order_Placed --> UPI_Verification : Customer Pays
+            UPI_Verification --> Out_for_Delivery : Payment Verified
+            Out_for_Delivery --> Delivered : Successfully Received
+            Out_for_Delivery --> RTO_Initiated : Customer Refused/Address Issue
+            RTO_Initiated --> Returned_to_Warehouse
+            Delivered --> [*]
+            Returned_to_Warehouse --> [*]
 
-    'timeline': async (ctx) => fetchMermaid(`You are a Project Manager. Build a Timeline using Mermaid 'timeline'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: timeline\\n title "Events"\\n 2023 : Event A : Event B. Output ONLY raw mermaid code.`, 0.3),
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
 
-    'gantt': async (ctx) => fetchMermaid(`You are an Ops Manager. Build a Gantt chart using Mermaid 'gantt'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: gantt\\n title Project\\n dateFormat YYYY-MM-DD\\n section Ops\\n Task : 2023-01-01, 10d. Output ONLY raw mermaid code.`, 0.2),
+        STRICT BHARAT RULES:
+        1. Focus on the unique Indian delivery lifecycle (COD, UPI Verification, RTO, NDR).
+        2. Use underscores (_) instead of spaces in State names to avoid syntax errors.
+        3. Use descriptive labels after the colon (:) for clarity.
+        4. Output ONLY raw mermaid code.
+    `),
 
-    'gitgraph': async (ctx) => fetchMermaid(`You are a Data Engineer. Build a GitGraph to show data versioning using Mermaid 'gitGraph'. Goal: ${ctx.goal}.
-    SYNTAX: gitGraph\\n commit id:"Raw"\\n branch clean\\n commit id:"Trimmed". Output ONLY raw mermaid code.`, 0.2),
+    'er': async (ctx) => fetchMermaid(`
+        TASK: Build an Entity Relationship Diagram (ERD) for Indian business data mapping.
+        
+        SYNTAX PATTERN:
+        erDiagram
+            ENTITY1 ||--o{ ENTITY2 : "Label"
+            ENTITY1 {
+                type field_name
+            }
+
+        SYNTAX EXAMPLE:
+        erDiagram
+            GST_INVOICE ||--|{ LINE_ITEMS : contains
+            GST_INVOICE }|--|| VENDOR : issued_by
+            VENDOR ||--o{ TDS_CHALLAN : requires
+            GST_INVOICE {
+                string gst_number
+                float taxable_value
+                float igst_18_pct
+            }
+
+        DATA CONTEXT: ${ctx.schema}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Map relationships like "Customer to UPI_Transaction," "Invoice to GST_Slab," or "Distributor to Kirana."
+        2. Use underscores (_) for entity and field names to ensure syntax stability.
+        3. Use this to help users understand how their disparate Tally, E-com, and Bank data link together.
+        4. Output ONLY raw mermaid code.
+    `),
+
+    'timeline': async (ctx) => fetchMermaid(`
+        TASK: Build a Bharat-localized business timeline.
+        
+        SYNTAX PATTERN:
+        timeline
+            title "Timeline Title"
+            Period 1 : Event : Sub-event
+            Period 2 : Event
+
+        SYNTAX EXAMPLE:
+        timeline
+            title "Indian Festive Sales Cycle"
+            Sept : Prep : Inventory Stocking
+            Oct : Navratri : Dussehra Sale
+            Nov : Diwali Peak : Bhai Dooj
+            Dec : Year-end Clearout : Wedding Season
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Prioritize the Indian Fiscal Year (April-March) or the Festive Calendar (Sept-Jan).
+        2. Group multiple events under the same period using colons ( : ).
+        3. Use this for tracking project milestones, tax filing deadlines, or historical growth.
+        4. Output ONLY raw mermaid code.
+    `),
+
+    'radar': async (ctx) => fetchMermaid(`
+        TASK: Build a Bharat-localized Performance Audit (Radar Chart).
+        
+        SYNTAX PATTERN:
+        radar-beta
+          title "Chart Title"
+          axis label1["Name"], label2["Name"]
+          curve a["Series A"]{val1, val2}
+          max [MaxValue]
+
+        SYNTAX EXAMPLE:
+        radar-beta
+          title "Logistics Partner Performance"
+          axis speed["Last-mile Speed"], rto["Low RTO %"], cod["COD Remittance"], support["Support"]
+          curve a["Delhivery"]{4.5, 3.8, 4.2, 3.5}
+          curve b["BlueDart"]{4.8, 4.5, 4.0, 4.8}
+          curve c["Ecom Express"]{3.5, 4.0, 4.5, 3.0}
+          max 5
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Perfect for comparing Indian courier partners (Delhivery, BlueDart), Bank Gateways, or Regional Sales performance.
+        2. Always define a "max" value (e.g., 5 or 100) to keep the scale consistent.
+        3. Output ONLY raw mermaid code. No markdown formatting.
+    `),
+
+    'gantt': async (ctx) => fetchMermaid(`
+        TASK: Build a Bharat-localized Logistics or Project timeline (Gantt Chart).
+        
+        SYNTAX PATTERN:
+        gantt
+            title "Chart Title"
+            dateFormat YYYY-MM-DD
+            section Section Name
+                Task Name : [status], [id], [start_date], [duration]
+                Follow-up Task : after [id], [duration]
+
+        SYNTAX EXAMPLE:
+        gantt
+            title "Diwali Inventory & Prep (FY24)"
+            dateFormat YYYY-MM-DD
+            section Procurement
+                Factory Production : p1, 2024-09-01, 25d
+                Customs & Transit : after p1, 10d
+            section Distribution
+                Warehouse Stocking : active, d1, 2024-10-05, 15d
+                Last-mile to Kiranas : after d1, 20d
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for tracking Supply Chain lead times (Mundra Port to City), Festive Season stocking, or March Audit cycles.
+        2. Ensure date formats match YYYY-MM-DD.
+        3. Output ONLY the raw mermaid code.
+    `),
+
+    'treemap': async (ctx) => fetchMermaid(`
+        TASK: Build a hierarchical Treemap for India-localized spending or category analysis.
+        
+        SYNTAX PATTERN:
+        treemap
+        "Root Category"
+            "Sub-Category A": Value
+            "Sub-Category B": Value
+
+        SYNTAX EXAMPLE:
+        treemap
+        "Total FY24 Budget (₹ Crores)"
+            "Marketing (Meta & Google)": 45
+            "Operations": 30
+            "Salaries & HR": 20
+            "GST & Compliance": 5
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Indentation is CRITICAL. Sub-items must be indented under their parent.
+        2. Use double quotes (" ") for all labels containing spaces or special characters.
+        3. Format values in Lakhs (L) or Crores (Cr) to keep the labels readable.
+        4. Output ONLY raw mermaid code.
+    `),
 
     // --- 3. STRATEGIC INTELLIGENCE ---
-    'mindmap': async (ctx) => fetchMermaid(`You are a Strategy Consultant. Build a Mindmap using Mermaid 'mindmap'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: mindmap\\n root((Goal))\\n  Node1\\n   SubNode1\\n  Node2. Output ONLY raw mermaid code.`, 0.6),
+    'mindmap': async (ctx) => fetchMermaid(`
+        TASK: Build a strategic Bharat-centric Mindmap.
+        
+        SYNTAX PATTERN:
+        mindmap
+          root(([Title]))
+            Category 1
+              Sub-item A
+              Sub-item B
+            Category 2
+              Sub-item C
 
-    'swot': async (ctx) => fetchMermaid(`You are a Strategy Consultant. Build a SWOT matrix using Mermaid 'quadrantChart'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: quadrantChart\\n title SWOT\\n x-axis "Internal" --> "External"\\n y-axis "Harmful" --> "Helpful"\\n quadrant-1 "Weakness"\\n quadrant-2 "Threat"\\n quadrant-3 "Strength"\\n quadrant-4 "Opportunity"\\n "Insight 1": [0.2, 0.2]. Output ONLY raw mermaid code.`, 0.5),
+        SYNTAX EXAMPLE:
+        mindmap
+          root((Bharat Growth Strategy))
+            Tier 2 Expansion
+              Lucknow Hub
+              Indore Logistics
+              Jaipur Marketing
+            Vernacular Content
+              Hindi Ad Copies
+              Tamil Support
+              Marathi Catalog
+            Payment Trust
+              UPI Cashback
+              No-cost EMI
 
-    'quadrant': async (ctx) => fetchMermaid(`You are a Consultant. Build a Matrix using Mermaid 'quadrantChart'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: quadrantChart\\n title Matrix\\n x-axis "Low" --> "High"\\n y-axis "Low" --> "High"\\n "Item":[0.8, 0.8]. Output ONLY raw mermaid code.`, 0.4),
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
 
-    'flowchart': async (ctx) => fetchMermaid(`You are a Systems Analyst. Build a Logic Flowchart using Mermaid 'graph TD'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: graph TD\\n A{Condition?} -->|Yes| B[Action]\\n A -->|No| C[Stop]. Output ONLY raw mermaid code.`, 0.3),
+        STRICT BHARAT RULES:
+        1. Focus on "Bharat-First" strategies (Tier 2/3 cities, vernacular marketing, UPI adoption).
+        2. Use root(( )) for the central goal and indented lines for hierarchy.
+        3. Output ONLY raw mermaid code.
+    `),
 
-    'sequence': async (ctx) => fetchMermaid(`You are an Architect. Build a Sequence diagram using Mermaid 'sequenceDiagram'. Goal: ${ctx.goal}. Data: ${ctx.dataContext}
-    SYNTAX: sequenceDiagram\\n Actor->>System: Request\\n System-->>Actor: Response. Output ONLY raw mermaid code.`, 0.2),
+    'kanban': async (ctx) => fetchMermaid(`
+        TASK: Build a Bharat-localized Kanban board for operations or task tracking.
+        
+        SYNTAX PATTERN:
+        kanban
+          Section Name
+            [Item Label]
+            id[Item Label]@{ priority: 'High', assigned: 'Name' }
+
+        SYNTAX EXAMPLE:
+        kanban
+          Pending Audits
+            [GST Feb Reconciliation]
+            tds[Verify TDS Challans]@{ priority: 'High', assigned: 'CA_Ankit' }
+          In Progress
+            id1[Dispatching Diwali Hampers]
+          Done
+            id2[March Closing Verified]@{ priority: 'Very High' }
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for tracking Lead Status, Audit progress, or Inventory movement.
+        2. Items inside brackets [] can contain spaces. 
+        3. Priority levels: 'Low', 'Medium', 'High', 'Very High'.
+        4. Output ONLY raw mermaid code.
+    `),
+
+    'quadrant': async (ctx) => fetchMermaid(`
+        TASK: Build a strategy matrix (Quadrant Chart) for Bharat market analysis.
+        
+        SYNTAX PATTERN:
+        quadrantChart
+            title "Chart Title"
+            x-axis [Low Label] --> [High Label]
+            y-axis [Low Label] --> [High Label]
+            quadrant-1 [Strategic Label]
+            quadrant-2 [Strategic Label]
+            quadrant-3 [Strategic Label]
+            quadrant-4 [Strategic Label]
+            "Item A": [x_value, y_value]
+
+        SYNTAX EXAMPLE:
+        quadrantChart
+            title "Market Prioritization (Tier 2/3 Cities)"
+            x-axis "Low Sales Volume" --> "High Sales Volume"
+            y-axis "High RTO Risk" --> "Low RTO Risk"
+            quadrant-1 "Aggressive Scale"
+            quadrant-2 "Improve Logistics"
+            quadrant-3 "Niche/High Margin"
+            quadrant-4 "Avoid/Fix RTO"
+            "Indore": [0.85, 0.9]
+            "Lucknow": [0.7, 0.4]
+            "Patna": [0.4, 0.2]
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for segmenting regions by Volume vs RTO (Return to Origin), or Channels by CPL vs Quality.
+        2. Values for x and y must be between 0.0 and 1.0.
+        3. Output ONLY the raw mermaid code.
+    `),
+
+    'flowchart': async (ctx) => fetchMermaid(`
+        TASK: Build an India-specific logic or process Flowchart.
+        
+        SYNTAX PATTERN:
+        flowchart TD
+            NodeID[Label] -->|Transition| DecisionID{Decision?}
+            DecisionID -->|Option 1| SuccessID[Success]
+
+        SYNTAX EXAMPLE:
+        flowchart TD
+            A[Purchase Recorded] --> B{GST Invoice?}
+            B -->|Yes| C[Check GSTR-2B]
+            B -->|No| D[Flag for Tax Risk]
+            C --> E{Credit Visible?}
+            E -->|Yes| F[Claim ITC]
+            E -->|No| G[Follow up with Vendor]
+            F --> H[Monthly Filing Done]
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use TD (Top-Down) for deep processes or LR (Left-Right) for horizontal funnels.
+        2. Nodes inside {} should represent decisions (like "UPI Success?", "Is MSME?", "COD Verified?").
+        3. Ensure edge labels (-->|text|) clearly describe the condition.
+        4. Output ONLY raw mermaid code.
+    `),
+
+    'sequence': async (ctx) => fetchMermaid(`
+        TASK: Build an India-localized process flow or system interaction (Sequence Diagram).
+        
+        SYNTAX PATTERN:
+        sequenceDiagram
+            participant ID as "Display Name"
+            ID1 ->> ID2: Message Text
+            ID2 -->> ID1: Response Text
+
+        SYNTAX EXAMPLE:
+        sequenceDiagram
+            participant C as "Customer"
+            participant U as "UPI App (PhonePe)"
+            participant B as "Bank (HDFC)"
+            participant M as "Merchant"
+
+            C ->> U: Initiate Payment (₹1,500)
+            U ->> B: Authenticate PIN
+            B -->> U: Success (UTR: 402923)
+            U ->> M: Settle Credits
+            M -->> C: Order Confirmed
+
+        DATA CONTEXT: ${ctx.dataContext}
+        USER GOAL: ${ctx.goal}
+
+        STRICT BHARAT RULES:
+        1. Use for explaining UPI payment loops, Tally-to-Cloud syncs, or Lead-to-Sale handoffs.
+        2. Actors/Participants should reflect the Indian ecosystem (e.g., UPI_Gateway, Warehouse_Godown, CA_Internal).
+        3. Use arrows (->>) for synchronous calls and dashed arrows (-->>) for responses.
+        4. Output ONLY raw mermaid code. No markdown formatting.
+    `),
 
     // --- CORE FALLBACKS ---
     'fallback': async (ctx) => fetchMermaid(`Build a Mermaid diagram for Goal: ${ctx.goal}. Data: ${ctx.dataContext}. Output raw code.`, 0.3),
