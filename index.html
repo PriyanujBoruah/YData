@@ -60,7 +60,7 @@
                 <div id="org-wrapper" class="hidden">
                     <input type="text" id="auth-org" placeholder="Organization Name" autocomplete="organization">
                 </div>
-                <input type="email" id="auth-email" placeholder="Email" autocomplete="username" required>
+                <input type="email" id="auth-email" placeholder="Email" required>
                 <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" required>
                 <button type="submit" id="btn-auth-submit" class="primary-btn" style="width: 100%; border-radius: 999px;">Sign In</button>
                 
@@ -451,15 +451,17 @@
                                         <div class="opt-item active" data-value="pie" data-icon="pie-chart">
                                             <i data-lucide="pie-chart"></i> <span>Distribution (Pie Chart)</span>
                                         </div>
-                                        <div class="opt-item" data-value="funnel" data-icon="filter">
-                                            <i data-lucide="filter"></i> <span>Sales Funnel</span>
+                                        <div class="opt-item" data-value="kanban" data-icon="filter">
+                                            <i data-lucide="filter"></i> <span>Kanban</span>
                                         </div>
                                         <div class="opt-item" data-value="xychart" data-icon="line-chart">
                                             <i data-lucide="line-chart"></i> <span>XY Trends (Bar/Line)</span>
                                         </div>
+<!--
                                         <div class="opt-item" data-value="sankey" data-icon="git-merge">
                                             <i data-lucide="git-merge"></i> <span>Sankey Flow</span>
                                         </div>
+-->
                                         <div class="opt-item" data-value="journey" data-icon="map">
                                             <i data-lucide="map"></i> <span>User Journey Map</span>
                                         </div>
@@ -478,8 +480,8 @@
                                         <div class="opt-item" data-value="gantt" data-icon="calendar-days">
                                             <i data-lucide="calendar-days"></i> <span>Gantt Chart</span>
                                         </div>
-                                        <div class="opt-item" data-value="gitgraph" data-icon="git-commit">
-                                            <i data-lucide="git-commit"></i> <span>GitGraph (Versioning)</span>
+                                        <div class="opt-item" data-value="treemap" data-icon="git-commit">
+                                            <i data-lucide="git-commit"></i> <span>Treemap</span>
                                         </div>
 
                                         <!-- Category 3: Strategic Intelligence -->
@@ -487,8 +489,8 @@
                                         <div class="opt-item" data-value="mindmap" data-icon="brain-circuit">
                                             <i data-lucide="brain-circuit"></i> <span>Mindmap (Brainstorm)</span>
                                         </div>
-                                        <div class="opt-item" data-value="swot" data-icon="target">
-                                            <i data-lucide="target"></i> <span>SWOT Matrix</span>
+                                        <div class="opt-item" data-value="radar" data-icon="target">
+                                            <i data-lucide="target"></i> <span>Radar Chart</span>
                                         </div>
                                         <div class="opt-item" data-value="quadrant" data-icon="layout-grid">
                                             <i data-lucide="layout-grid"></i> <span>Quadrant Matrix</span>
@@ -1186,7 +1188,7 @@
     </main>
 
     <script type="module">
-        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         mermaid.initialize({ 
             startOnLoad: false, 
             suppressErrorRendering: true, // This stops the floating error bubble
