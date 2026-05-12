@@ -11,7 +11,7 @@ const API_URL = "https://api.mistral.ai/v1/chat/completions";
 // User's Targeted Model Configuration
 const MODELS = {
     ROUTER: "mistral-small-2506",        
-    ENGINEER: "mistral-small-2506",       
+    ENGINEER: "codestral-2508",       
     STRATEGIST: "mistral-medium-2505",    
     TECH_AUDITOR: "mistral-medium-2508"          
 };
@@ -89,12 +89,110 @@ async function generateAndRunSQL(userQuestion, schema, activeTable, maxRetries =
                     1. If the user asks for information (How many, List, Summary, Average), use a SELECT statement.
                     2. If the user gives a COMMAND to change, clean, or fix data (Remove, Clean, Standardize, Delete, Fix), use UPDATE, DELETE, or ALTER TABLE to permanently modify the local vault.
                     
+                    4. DUCKDB SPECIALS: 
+                       - Use 'SELECT * EXCLUDE (col)' to drop columns.
+                       - Use 'PIVOT' keyword for cross-tabs.
+                       - Use 'GROUP BY ALL' for auto-inference.
+                       - Use 'strptime(col, "%d/%m/%Y")' for Indian date formats.
+                       - Rename syntax: 'ALTER TABLE "t" RENAME COLUMN "a" TO "b";' (One per statement).
+                       
                     RULES:
                     1. ALWAYS use "ILIKE" for case-insensitive string comparisons.
                     2. Always quote table and column names with double quotes (e.g., UPDATE "${activeTable}" SET "phone" = ...).
                     3. For phone cleaning: To remove a prefix like '91', use 'CAST(SUBSTRING("column"::TEXT, 3) AS BIGINT)' or similar string manipulation.
                     4. DML LIMIT: When using UPDATE or DELETE, ensure the WHERE clause is accurate based on the user's instruction.
-                    5. Output ONLY JSON: {"reasoning": "...", "sql": "query without semicolon"}
+                    5. Output ONLY JSON: {"reasoning": "...", "sql": "query"}
+                    
+                    DuckDB vs. PostgreSQL & MySQL: Syntax Differences (Categorized)
+
+                    =========================================
+                    DATA DEFINITION LANGUAGE (DDL) & SCHEMA
+                    =========================================
+
+                    1. Auto-Increment Sequences
+                    - DuckDB / PG: Uses sequences (e.g., DEFAULT nextval('seq_name'))
+                    - MySQL: Uses AUTO_INCREMENT keyword on column definition
+                    - Example: CREATE SEQUENCE my_seq;
+
+                    2. VARCHAR Length Limits
+                    - DuckDB: Accepts syntax but ignores length limits (VARCHAR(50) is treated as infinite text)
+                    - PG/MySQL: Strictly enforces string truncation and throws errors
+                    - Example: CREATE TABLE t (name VARCHAR(5)); 
+
+                    3. Quotes (Identifiers vs Strings)
+                    - DuckDB / PG: Double quotes ("id") for identifiers, single quotes ('str') for strings
+                    - MySQL: Backticks (\`id\`) for identifiers
+                    - Example: CREATE TABLE "User Data" ("First Name" VARCHAR);
+
+                    =========================================
+                    DATA MANIPULATION (DML) & QUERYING (DQL)
+                    =========================================
+
+                    4. Querying Files Directly
+                    - DuckDB: Direct file queries in FROM clause
+                    - PG/MySQL: Requires external tables or LOAD DATA
+                    - Example: SELECT * FROM 'data.csv';
+
+                    5. Trailing Commas
+                    - DuckDB: Allowed
+                    - PG/MySQL: Error
+                    - Example: SELECT a, b, FROM t;
+
+                    6. FROM-First Syntax
+                    - DuckDB: Allowed (Acts as SELECT *)
+                    - PG/MySQL: Requires SELECT keyword
+                    - Example: FROM my_table;
+
+                    7. GROUP BY ALL / ORDER BY ALL
+                    - DuckDB: Infers non-aggregated columns automatically
+                    - PG/MySQL: Requires explicit column names
+                    - Example: SELECT a, b, SUM(c) FROM t GROUP BY ALL;
+
+                    8. SELECT * EXCLUDE / REPLACE
+                    - DuckDB: Excludes or replaces specific columns
+                    - PG/MySQL: Not supported
+                    - Example: SELECT * EXCLUDE (password) REPLACE (UPPER(name) AS name) FROM users;
+
+                    9. Filtering on Window Functions (QUALIFY)
+                    - DuckDB: Uses QUALIFY clause
+                    - PG/MySQL: Requires wrapping window functions in a CTE
+                    - Example: SELECT *, ROW_NUMBER() OVER(...) as rn FROM t QUALIFY rn = 1;
+
+                    10. PIVOT / UNPIVOT
+                    - DuckDB: Native keywords
+                    - PG: Needs 'tablefunc' extension; MySQL: Needs manual CASE statements
+                    - Example: PIVOT sales ON year USING SUM(revenue);
+
+                    11. Arrays / Lists Constructor
+                    - DuckDB: Uses square brackets []
+                    - PG: Uses ARRAY[] constructor
+                    - Example: SELECT [1, 2, 3];
+
+                    12. JSON / Struct Field Access
+                    - DuckDB: Standard dot notation
+                    - PG: Arrow operators (->, ->>)
+                    - Example: SELECT user.address.city FROM users;
+
+                    13. ASOF JOIN (Time-Series)
+                    - DuckDB: Native support for closest-match joins
+                    - PG/MySQL: Requires complex LATERAL JOINs or subqueries
+                    - Example: SELECT * FROM t1 ASOF JOIN t2 ON t1.id = t2.id AND t1.time >= t2.time;
+
+                    14. Sampling Data
+                    - DuckDB: Native USING SAMPLE clause
+                    - PG/MySQL: Uses ORDER BY RANDOM() (which is slower)
+                    - Example: SELECT * FROM users USING SAMPLE 10%;
+
+                    15. String Concatenation
+                    - DuckDB / PG: Standard || operator
+                    - MySQL: CONCAT() function
+                    - Example: SELECT 'a' || 'b';
+
+                    16. NULL Sorting Behavior
+                    - DuckDB: NULLs appear last for ASC, first for DESC
+                    - PG: NULLs appear first for ASC (opposite of DuckDB)
+                    - Example: SELECT * FROM t ORDER BY col ASC;
+
                     
                     ${sqlErrorHistory ? `FIX PREVIOUS ERROR: ${sqlErrorHistory}` : ''}`
                 }, { role: "user", content: userQuestion }],
