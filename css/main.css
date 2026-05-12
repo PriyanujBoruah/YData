@@ -390,8 +390,18 @@ textarea {
     overflow-x: auto;
 }
 
-.bot-message.error {
-    background-color: #fce8e6;
+/* Custom styling for the Busy message */
+.bot-message .error-box {
+    background: #f8f9fa; /* Very light gray */
+    border: 1px solid #eef2f6;
+    color: #444746;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.3s ease;
 }
 
 
