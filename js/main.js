@@ -950,7 +950,13 @@ async function handleSendMessage() {
 
     } catch (err) {
         console.error("Agent Error:", err);
-        textEl.innerHTML = `<span class="text-red-500">I lost connection to the brain. Check your API configuration.</span>`;
+        textEl.innerHTML = `
+            <div class="p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-600 text-sm flex items-center gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
+                <span>Server is busy. Please try again.</span>
+            </div>
+        `;
+        if (window.lucide) lucide.createIcons();
     } finally {
         // 4. Unlock UI & Remove Shimmer
         inputPill.classList.remove('input-pill-thinking');
