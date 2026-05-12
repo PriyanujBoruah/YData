@@ -5065,3 +5065,125 @@ input[type="radio"]:focus {
     gap: 15px;
     padding: 20px;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Custom Header Styling */
+.custom-header-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.header-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.header-actions {
+    display: none; /* Hidden by default */
+    gap: 4px;
+    margin-left: 8px;
+}
+
+.ag-header-cell:hover .header-actions {
+    display: flex; /* Show icons on hover */
+}
+
+.header-btn {
+    background: transparent;
+    border: none;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #70757a;
+    transition: all 0.2s;
+}
+
+.header-btn:hover {
+    background: #f1f3f4;
+    color: #0b57d0;
+}
+
+.header-btn.delete:hover {
+    color: #d93025;
+    background: #fce8e6;
+}
+
+/* 1. Desktop: Hidden by default, shown on hover */
+.header-actions {
+    display: none; 
+    gap: 6px;
+    margin-left: 8px;
+    flex-shrink: 0; /* Prevents icons from squashing */
+}
+
+.ag-header-cell:hover .header-actions {
+    display: flex; 
+}
+
+/* 2. Mobile/Touch: Always visible */
+/* '@media (hover: none)' targets touchscreens like iPhones and Androids */
+@media (hover: none), (max-width: 768px) {
+    .header-actions {
+        display: flex !important;
+        opacity: 0.6; /* Slightly faded so the text remains the focus */
+    }
+    
+    /* Make buttons slightly larger for easier tapping on mobile */
+    .header-btn {
+        padding: 6px;
+    }
+
+    /* Ensure the label takes as much space as possible but allows icons to show */
+    .header-label {
+        max-width: calc(100% - 50px); 
+    }
+}
+
+.header-btn:active {
+    transform: scale(0.9); /* Visual feedback for touch */
+    background: #e8f0fe;
+}
