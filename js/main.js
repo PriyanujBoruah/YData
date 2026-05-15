@@ -2,7 +2,7 @@
 
 import { initDatabase, registerFile, runQuery, registerFromURL, getTableSchema, loadTableFromParquet, ingestJsonArray  } from './core/database.js';
 import { showTablePreview, hideTablePreview } from './ui/overlays.js';
-import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights, getSchemaOptimizationPlan } from './core/ai-agent.js';
+import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights, getSchemaOptimizationPlan, streamDeepResearch } from './core/ai-agent.js';
 import { initMenus } from './ui/input-bar.js';
 import { initVizEngine } from './modules/viz-engine.js';
 import { openPivotModal, executePivot, initPivotUI } from './modules/pivot-engine.js';
@@ -445,7 +445,16 @@ function setupEventListeners() {
         }
     });
 
-    btnSend.addEventListener('click', handleSendMessage);
+    btnSend.addEventListener('click', () => {
+        const text = userPrompt.value.trim();
+        if (text === "Execute Deep Research Protocol") {
+            handleNarrator();
+            return;
+        } else {
+            handleSendMessage(); // Trigger standard SQL/Chat logic
+        }
+    });
+
 
     // --- Eye Preview Logic ---
     btnPreview.addEventListener('click', () => {
@@ -1079,55 +1088,69 @@ function scrollToBottom() {
 }
 
 /**
- * Triggers the Narrative Executive Story
+ * Triggers the Deep Research Narrative
  */
 async function handleNarrator() {
     if (!state.activeTable) return alert("Please upload a dataset first.");
 
     const msgDiv = document.createElement('div');
-    msgDiv.className = 'message bot-message narrator-container'; // Special class
+    msgDiv.className = 'message bot-message narrator-container'; 
+    msgDiv.dataset.prompt = "Execute Deep Research Protocol"; // Virtual prompt for regenerate
+
     msgDiv.innerHTML = `
-        <div class="bot-avatar">
-            <img src="assets/logo.png" alt="Krata AI">
-        </div>
-        <div class="bubble premium-report">
+        <div class="bot-avatar"><img src="/assets/logo.png" alt="Krata AI"></div>
+        <div class="bubble premium-report w-full">
             <div class="report-header">
-                <i data-lucide="award" class="text-blue-600"></i>
-                <span>EXECUTIVE STRATEGY BRIEF</span>
+                <i data-lucide="shield-plus" class="text-purple-600"></i>
+                <span>DEEP RESEARCH DOSSIER</span>
             </div>
-            <div class="status-msg italic text-xs text-gray-400 mt-2">Initializing 2-Stage Analysis...</div>
+            
+            <div class="status-msg italic text-xs text-gray-400 mt-2">Connecting to Expert Network...</div>
             <div class="response-text prose prose-sm max-w-none text-gray-800"></div>
+
+            <div class="chat-action-bar hidden">
+                <button class="chat-action-btn" title="Copy" onclick="copyChatResponse(this)"><i data-lucide="copy"></i></button>
+                <button class="chat-action-btn" title="Save to Library" onclick="saveChatToLibrary(this)"><i data-lucide="bookmark"></i></button>
+                <button class="chat-action-btn" title="Add to Workspace" onclick="shareChatToWorkspace(this)"><i data-lucide="layout-dashboard"></i></button>
+                <button class="chat-action-btn" title="Regenerate" onclick="regenerateChatResponse(this)"><i data-lucide="refresh-cw"></i></button>
+                <button class="chat-action-btn delete-btn" title="Delete" onclick="deleteChatResponse(this)"><i data-lucide="trash-2"></i></button>
+            </div>
         </div>
     `;
+    
     messagesContainer.appendChild(msgDiv);
     lucide.createIcons();
     scrollToBottom();
 
     const statusEl = msgDiv.querySelector('.status-msg');
     const textEl = msgDiv.querySelector('.response-text');
+    const actionBar = msgDiv.querySelector('.chat-action-bar');
 
     let fullStory = "";
     try {
-        // Switch to the advanced stream
-        for await (const chunk of streamAdvancedNarrative(state.activeTable)) {
+        // 🚀 Switch to the NEW Deep Research stream
+        for await (const chunk of streamDeepResearch(state.activeTable)) {
             if (chunk.type === 'status') {
                 statusEl.innerText = chunk.content;
             } else if (chunk.type === 'text') {
                 statusEl.style.display = 'none';
                 fullStory += chunk.content;
                 
-                // Enhanced formatting for professional look
-                textEl.innerHTML = fullStory
-                    .replace(/\n\n/g, '<div class="mb-4"></div>')
-                    .replace(/\n/g, '<br>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-blue-900">$1</strong>')
-                    .replace(/### (.*?)(<br>|<div>)/g, '<h3 class="text-lg font-bold text-blue-800 mt-4 mb-2 border-b">$1</h3>');
-                
+                // Advanced Professional Formatting
+                textEl.innerHTML = marked.parse(fullStory);
+                // 🚀 CRITICAL: Continuous scroll for long reports
+                const scrollArea = document.getElementById('chat-history-container');
+                scrollArea.scrollTop = scrollArea.scrollHeight;
+
                 scrollToBottom();
             }
         }
     } catch (err) {
-        textEl.innerHTML = `<span class="text-red-500">The narrative engine encountered an error.</span>`;
+        console.error(err);
+        textEl.innerHTML = `<span class="text-gray-500 italic">Server is busy. Please try again.</span>`;
+    } finally {
+        if (actionBar) actionBar.classList.remove('hidden');
+        lucide.createIcons();
     }
 }
 
