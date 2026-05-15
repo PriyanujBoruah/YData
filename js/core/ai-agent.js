@@ -601,7 +601,7 @@ export async function getSchemaOptimizationPlan(tableName) {
                 content: `You are a Data Architect optimizing a table extracted from unstructured OCR docs.
                 
                 SCHEMA: ${schema}
-                SAMPLE DATA: ${JSON.stringify(sample)}
+                SAMPLE DATA: ${JSON.stringify(sample, bigIntReplacer)}
 
                 TASK:
                 1. MERGE: Identify columns representing the same concept (e.g., "Inv#" and "Invoice_No").
@@ -770,4 +770,52 @@ export async function* streamDeepResearch(activeTable) {
             }
         }
     }
+}
+
+/**
+ * SEMANTIC MAPPER: Hardened with explicit column lists to prevent selection errors.
+ */
+export async function getAiSchemaMapping(targetName, sourceName) {
+    // 1. Get Schemas (Column Lists)
+    const targetInfo = await runQuery(`PRAGMA table_info('${targetName}')`);
+    const sourceInfo = await runQuery(`PRAGMA table_info('${sourceName}')`);
+
+    const targetColsList = targetInfo.map(c => c.name).filter(n => !['rowid', 'selection-col'].includes(n));
+    const sourceColsList = sourceInfo.map(c => c.name);
+
+    // 2. Get Data Samples
+    const targetSample = await runQuery(`SELECT * FROM "${targetName}" LIMIT 3`);
+    const sourceSample = await runQuery(`SELECT * FROM "${sourceName}" LIMIT 3`);
+
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [{
+                role: "system",
+                content: `You are a Data Integration Expert.
+                
+                TARGET COLUMNS (Vault): [${targetColsList.join(', ')}]
+                SOURCE COLUMNS (New File): [${sourceColsList.join(', ')}]
+                
+                SAMPLES:
+                Vault Sample: ${JSON.stringify(targetSample, bigIntReplacer)}
+                Source Sample: ${JSON.stringify(sourceSample, bigIntReplacer)}
+
+                TASK:
+                Map SOURCE columns to TARGET columns based on data content and semantics.
+                
+                RULES:
+                1. You MUST only use column names provided in the lists above.
+                2. Return ONLY JSON: {"Target_Col_Name": "Source_Col_Name"}.
+                3. If no logical match exists for a Target column, do not include it.`
+            }],
+            response_format: { type: "json_object" },
+            temperature: 0
+        })
+    });
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
 }
