@@ -648,3 +648,34 @@ export async function getAiPivotSettings(tableName, userGoal) {
     const result = await response.json();
     return JSON.parse(result.choices[0].message.content);
 }
+
+/**
+ * VIZ ARCHITECT: Analyzes schema and suggests the best possible visual insight.
+ */
+export async function getAiVizSuggestion(tableName) {
+    const schema = await getTableSchema(tableName);
+    
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [{
+                role: "system",
+                content: `You are a Senior Data Journalist. 
+                SCHEMA: ${schema}
+
+                TASK:
+                1. Identify the most strategic business insight possible from this schema.
+                2. Select exactly one chart type from this list: [xychart, state, treemap, pie, timeline, journey, quadrant, radar, flowchart, gantt, mindmap, er, kanban, requirement].
+                3. Write a 1-sentence prompt (goal) for the visualizer AI.
+
+                Return ONLY JSON: {"type": "selected_type", "goal": "The generated prompt"}`
+            }],
+            response_format: { type: "json_object" }
+        })
+    });
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
+}
