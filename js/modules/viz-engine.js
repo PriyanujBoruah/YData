@@ -1,6 +1,8 @@
 // js/modules/viz-engine.js
 import { getTableSchema, getDeepTableProfile } from '../core/database.js';
 import { fetchWithRetry } from '../core/utils.js';
+import { getAiVizSuggestion } from '../core/ai-agent.js';
+
 
 const MISTRAL_API_KEY = import.meta.env.VITE_MISTRAL_API_KEY;  
 const API_URL = "https://api.mistral.ai/v1/chat/completions";
@@ -12,6 +14,8 @@ const configView = document.getElementById('viz-config-view');
 const resultView = document.getElementById('viz-result-view');
 const mermaidContainer = document.getElementById('modal-mermaid-container');
 const refineInput = document.getElementById('viz-refine-input');
+const btnAuto = document.getElementById('btn-auto-viz');
+
 
 // State Management
 let selectedType = 'pie';
@@ -223,6 +227,58 @@ export function initVizEngine() {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
             if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    const btnAuto = document.getElementById('btn-auto-viz');
+
+    btnAuto?.addEventListener('click', async () => {
+        const activeTable = document.getElementById('active-data-label').innerText;
+        if (!activeTable || activeTable === "Select Data") return alert("Upload data first");
+
+        // 1. Loading State
+        const originalHtml = btnAuto.innerHTML;
+        btnAuto.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Architecting...`;
+        btnAuto.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            // 2. Ask Architect for a suggestion
+            const suggestion = await getAiVizSuggestion(activeTable);
+
+            // 3. 🚀 UPDATE UI: Change the dropdown selection visually
+            const optionItem = document.querySelector(`.opt-item[data-value="${suggestion.type}"]`);
+            if (optionItem) {
+                // Update internal state
+                selectedType = suggestion.type;
+                
+                // Update Dropdown Label and Icon
+                const iconName = optionItem.dataset.icon;
+                const label = optionItem.querySelector('span').innerText;
+                const triggerContent = document.querySelector('#viz-dropdown-trigger .trigger-content');
+                triggerContent.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i> <span>${label}</span>`;
+                
+                // Update Active Class
+                document.querySelectorAll('.opt-item').forEach(i => i.classList.remove('active'));
+                optionItem.classList.add('active');
+            }
+
+            // 4. Update the Goal Textarea
+            document.getElementById('viz-goal').value = suggestion.goal;
+
+            // 5. Run the existing render function
+            // We restore the button BEFORE the heavy render call
+            btnAuto.innerHTML = originalHtml;
+            btnAuto.disabled = false;
+            if (window.lucide) lucide.createIcons();
+
+            await renderModalChart(activeTable);
+
+        } catch (err) {
+            console.error(err);
+            btnAuto.innerHTML = originalHtml;
+            btnAuto.disabled = false;
+            alert("Server is busy. Please try again.");
         }
     });
 }
