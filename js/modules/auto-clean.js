@@ -37,20 +37,22 @@ export async function runAutoClean(tableName) {
             } 
             
             // 2. HARDENED TEMPORAL CLEANING
+            // 2. HARDENED TEMPORAL CLEANING (Bharat Focused)
             else if (isTemporal) {
-                // 🚀 THE FIX: We use a "TRY_CAST chain". 
-                // It first tries to parse as ISO, then tries to parse the messy string format.
-                const isoDate = `TRY_CAST("${colName}" AS DATE)`;
+                // 🚀 THE FIX: A "Coalesce Chain" that tries Indian formats first
+                const castChain = [
+                    `TRY_CAST("${colName}" AS DATE)`,           // ISO Format
+                    `strptime("${colName}", '%d-%m-%Y')`,      // Indian (21-03-2018)
+                    `strptime("${colName}", '%d/%m/%Y')`,      // Indian Slash (21/03/2018)
+                    `strptime(SUBSTRING("${colName}", 1, 15), '%a %b %d %Y')`, // Messy JS format
+                    `'1970-01-01'::DATE`                        // Fallback
+                ].join(', ');
+
+                const casted = `COALESCE(${castChain})`;
                 
-                // This specifically handles the messy "Sun Oct 01 2023..." format
-                const messyDate = `strptime(SUBSTRING("${colName}", 1, 15), '%a %b %d %Y')`;
-                
-                // We COALESCE them: Try standard cast -> Try messy parse -> Fallback to epoch
-                const casted = `COALESCE(${isoDate}, ${messyDate}, '1970-01-01'::DATE)`;
-                
-                // LOCF Window function (Carrying forward the valid date)
+                // Use window function to fill gaps with the last valid date
                 selectClauses.push(`last_value(${casted} IGNORE NULLS) OVER (ORDER BY rowid) AS "${colName}"`);
-                cleanActions.push(`Standardized temporal data in [${colName}] using multi-format parsing.`);
+                cleanActions.push(`Standardized Bharat-date formats in [${colName}]`);
             }
 
             // 3. HARDENED TEXT & EMOJI SCRUBBING
