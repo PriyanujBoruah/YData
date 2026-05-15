@@ -363,6 +363,30 @@
                                 <button class="menu-item" id="menu-privacy"><i data-lucide="shield-check"></i> Privacy Labs</button>
                             </div>
                         </div>
+
+                        <div class="menu-wrapper">
+                            <button class="icon-btn" id="btn-plus-menu" title="Add Records">
+                                <i data-lucide="plus"></i>
+                            </button>
+                            <div id="menu-plus" class="dropdown-menu hidden" style="width: 240px;">
+                                <div class="dropdown-header">Add to Active Table</div>
+                                <button class="menu-item" id="btn-manual-insert">
+                                    <i data-lucide="form-input"></i> Manual Entry Form
+                                </button>
+                                <button class="menu-item" onclick="document.getElementById('insert-file-picker').click()">
+                                    <i data-lucide="file-up"></i> Upload CSV / Excel
+                                </button>
+                                <button class="menu-item" onclick="document.getElementById('append-unstructured-picker').click()">
+                                    <i data-lucide="scan-text"></i> Upload PDF / Image
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Hidden File Picker specifically for appending -->
+                        <input type="file" id="insert-file-picker" accept=".csv,.xlsx" style="display:none">
+                        <!-- Hidden Picker for Unstructured Append -->
+                        <input type="file" id="append-unstructured-picker" accept=".png,.jpg,.jpeg,.pdf" style="display:none">
+
                     </div>
 
                     <div class="right-group">
@@ -1186,6 +1210,67 @@
                 <div class="modal-body" style="padding: 0; height: calc(100% - 75px); background: #f8f9fa;">
                     <!-- Iframe starts empty, JS will fill it -->
                     <iframe id="feedback-iframe" src="" width="100%" height="100%" frameborder="0" marginheight="0" marginwidth="0" style="border:none;">Loading…</iframe>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insert Record Modal -->
+        <div id="insert-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="modal-header border-b pb-4">
+                    <div>
+                        <h3 class="text-xl font-bold">Add New Record</h3>
+                        <p class="text-xs text-gray-500" id="insert-modal-subtitle">Adding to active table...</p>
+                    </div>
+                    <button onclick="closeAllModals()" class="icon-btn"><i data-lucide="x"></i></button>
+                </div>
+                
+                <!-- This container will be filled with inputs dynamically via JS -->
+                <div class="modal-body pt-4" id="insert-form-container" style="max-height: 60vh; overflow-y: auto;">
+                    <div class="p-8 text-center text-gray-400 italic">Select a dataset first.</div>
+                </div>
+
+                <div class="modal-footer mt-4 border-t pt-4">
+                    <button id="btn-save-record" class="primary-btn w-full flex justify-center items-center gap-2">
+                        <i data-lucide="database-backup" class="w-4 h-4"></i> Commit to Vault
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema Mapping Modal -->
+        <div id="mapping-modal" class="modal-overlay">
+            <div class="modal-card viz-large">
+                <div class="modal-header border-b pb-4">
+                    <div>
+                        <h3 class="text-xl font-bold">Map Source Columns</h3>
+                        <p class="text-xs text-gray-500">Link columns from your new file to the existing table.</p>
+                    </div>
+                    <button onclick="closeAllModals()" class="icon-btn"><i data-lucide="x"></i></button>
+                </div>
+                
+                <div class="modal-body py-4" style="max-height: 60vh; overflow-y: auto;">
+                    <div class="mapping-header flex font-bold text-[10px] uppercase text-gray-400 mb-4 px-2">
+                        <div class="flex-1">Vault Column (Target)</div>
+                        <div style="width: 40px;"></div> <!-- Arrow space -->
+                        <div class="flex-1">New File Column (Source)</div>
+                    </div>
+                    <div id="mapping-container" class="space-y-3">
+                        <!-- Rows injected by JS -->
+                    </div>
+                </div>
+
+                <div class="modal-footer mt-4 border-t pt-4 flex justify-between items-center">
+                    <div class="text-[10px] text-orange-600 italic">
+                        <i data-lucide="alert-triangle" class="w-3 h-3 inline"></i> 
+                        Mismatched types will be auto-converted.
+                    </div>
+                    <button id="btn-ai-match" class="secondary-btn gap-2">
+                        <i data-lucide="sparkles" class="text-purple-600"></i> AI Auto-Match
+                    </button>
+                    <button id="btn-execute-append" class="primary-btn w-auto px-8">
+                        Merge Records
+                    </button>
                 </div>
             </div>
         </div>
