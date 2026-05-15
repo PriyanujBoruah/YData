@@ -2,7 +2,7 @@
 
 import { initDatabase, registerFile, runQuery, registerFromURL, getTableSchema, loadTableFromParquet, ingestJsonArray  } from './core/database.js';
 import { showTablePreview, hideTablePreview } from './ui/overlays.js';
-import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights, getSchemaOptimizationPlan, streamDeepResearch } from './core/ai-agent.js';
+import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights, getSchemaOptimizationPlan, streamDeepResearch, getAiSchemaMapping } from './core/ai-agent.js';
 import { initMenus } from './ui/input-bar.js';
 import { initVizEngine } from './modules/viz-engine.js';
 import { openPivotModal, executePivot, initPivotUI } from './modules/pivot-engine.js';
@@ -258,7 +258,7 @@ function setupEventListeners() {
             // STEP 2: DUCKDB CONSOLIDATION
             if (masterDataPool.length > 0) {
                 try {
-                    addSystemMessage(`Consolidating ${processedCount} documents into high-fidelity vault...`);
+                    addSystemMessage(`📦 Consolidating ${processedCount} documents into high-fidelity vault...`);
                     
                     // Uses the robust injector to handle varying columns and create the table
                     await ingestJsonArray(masterTableName, masterDataPool);
@@ -271,7 +271,7 @@ function setupEventListeners() {
                     userPrompt.placeholder = `Ask about this consolidated batch...`;
                     updateDataSelector(state);
                     
-                    addSystemMessage(`**Intelligence Complete.** Consolidated documents into unified table **${masterTableName}**.`);
+                    addSystemMessage(`✅ **Intelligence Complete.** Consolidated documents into unified table **${masterTableName}**.`);
                     
                     // Trigger Post-Ingestion Audit
                     setTimeout(() => triggerIntelligenceCheckup(masterTableName), 1000);
@@ -282,7 +282,7 @@ function setupEventListeners() {
 
                 } catch (err) {
                     console.error("Batch Consolidation Error:", err);
-                    addSystemMessage(`Server is busy. Please try again.`, true);
+                    addSystemMessage(`❌ Server is busy. Please try again.`, true);
                 }
             }
         }
@@ -867,6 +867,360 @@ function setupEventListeners() {
             console.error("Feedback error:", err);
         }
     });
+
+    // ============================================================
+    // DATA ENTRY & BATCH APPEND LOGIC
+    // ============================================================
+
+    /**
+     * 1. TRIGGER: Manual Entry Form
+     * Opens the modal and generates inputs based on active table schema.
+     */
+    document.getElementById('btn-manual-insert').addEventListener('click', async () => {
+        if (!state.activeTable) return alert("Please select a dataset first.");
+
+        const container = document.getElementById('insert-form-container');
+        const subtitle = document.getElementById('insert-modal-subtitle');
+        
+        // Close the dropdown menu
+        document.getElementById('menu-plus').classList.add('hidden');
+        
+        subtitle.innerText = `Adding record to: ${state.activeTable}`;
+        container.innerHTML = `<div class="p-4 text-center text-xs italic text-gray-400">Inspecting schema...</div>`;
+        
+        window.openModal('insert-modal');
+
+        try {
+            // Fetch column info from DuckDB vault
+            const columns = await runQuery(`PRAGMA table_info('${state.activeTable}')`);
+            container.innerHTML = ""; // Clear loader
+
+            columns.forEach(col => {
+                // Internal DuckDB columns or rowid should not be manually edited
+                if (['rowid', 'selection-col'].includes(col.name)) return;
+
+                const group = document.createElement('div');
+                group.className = "form-group mb-4";
+                group.innerHTML = `
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">${col.name}</label>
+                    <input type="text" class="insert-input custom-select" 
+                        data-column="${col.name}" 
+                        placeholder="Value for ${col.type}...">
+                `;
+                container.appendChild(group);
+            });
+
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = `<div class="text-red-500 text-xs p-4">Server is busy. Please try again.</div>`;
+        }
+    });
+
+    /**
+     * 2. ACTION: Commit Manual Record
+     * Generates and runs the SQL INSERT command.
+     */
+    document.getElementById('btn-save-record').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-save-record');
+        const inputs = document.querySelectorAll('.insert-input');
+        const originalHtml = btn.innerHTML;
+
+        const columnNames = [];
+        const values = [];
+
+        inputs.forEach(input => {
+            const val = input.value.trim();
+            if (val !== "") {
+                columnNames.push(`"${input.dataset.column}"`);
+                // Escape single quotes to prevent SQL crashes
+                values.push(`'${val.replace(/'/g, "''")}'`);
+            }
+        });
+
+        if (columnNames.length === 0) return alert("Please fill at least one field.");
+
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Committing...`;
+        btn.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const sql = `INSERT INTO "${state.activeTable}" (${columnNames.join(', ')}) VALUES (${values.join(', ')})`;
+            await runQuery(sql);
+
+            btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> Committed!`;
+            
+            // Refresh Spreadsheet View if active
+            const spreadsheetView = document.getElementById('spreadsheet-view');
+            if (spreadsheetView && !spreadsheetView.classList.contains('view-hidden')) {
+                const { openSpreadsheet } = await import('./modules/spreadsheet.js');
+                await openSpreadsheet(state.activeTable);
+            }
+
+            setTimeout(() => {
+                window.closeAllModals();
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+                if (window.lucide) lucide.createIcons();
+            }, 1200);
+
+        } catch (err) {
+            console.error(err);
+            alert("Server is busy. Please try again.");
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    /**
+     * 3. TRIGGER: Batch File Append (CSV/XLSX)
+     * Loads a file and appends it to the currently active table.
+     */
+    let tempAppendTable = null; // Tracks the new file's temp name
+
+    /**
+     * 🚀 STEP 1: INITIAL FILE PICK
+     */
+    document.getElementById('insert-file-picker').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file || !state.activeTable) return;
+
+        document.getElementById('menu-plus').classList.add('hidden');
+        
+        try {
+            const { registerFile } = await import('./core/database.js');
+            // Register the new file as a temporary table
+            tempAppendTable = await registerFile(file);
+            
+            // Fetch schemas for both tables
+            const targetSchema = await runQuery(`PRAGMA table_info('${state.activeTable}')`);
+            const sourceSchema = await runQuery(`PRAGMA table_info('${tempAppendTable}')`);
+            
+            renderMappingUI(targetSchema, sourceSchema);
+            window.openModal('mapping-modal');
+            
+        } catch (err) {
+            console.error(err);
+            addSystemMessage("Server is busy. Please try again.", true);
+        }
+    });
+
+    /**
+     * 🚀 STEP 2: RENDER MAPPING UI
+     */
+    function renderMappingUI(targetSchema, sourceSchema) {
+        const container = document.getElementById('mapping-container');
+        container.innerHTML = "";
+
+        // Create the options list once
+        const sourceOptions = `<option value="">-- Skip Column --</option>` + 
+            sourceSchema.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+
+        targetSchema.forEach(target => {
+            if (['rowid', 'selection-col'].includes(target.name)) return;
+
+            const row = document.createElement('div');
+            row.className = 'mapping-row';
+            row.innerHTML = `
+                <div class="target-col">
+                    <span class="text-xs font-bold">${target.name}</span>
+                    <span class="col-type-tag">${target.type}</span>
+                </div>
+                <i data-lucide="arrow-right" class="text-gray-300 w-4 h-4"></i>
+                <div class="flex-1">
+                    <!-- 🚀 ENSURE CLASS 'map-input' and 'data-target' ARE PRESENT -->
+                    <select class="map-input custom-select-small" 
+                            data-target="${target.name}" 
+                            data-type="${target.type}">
+                        ${sourceOptions}
+                    </select>
+                </div>
+            `;
+            
+            // Initial auto-match by name
+            const select = row.querySelector('select');
+            const match = sourceSchema.find(s => s.name.toLowerCase() === target.name.toLowerCase());
+            if (match) select.value = match.name;
+
+            container.appendChild(row);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    /**
+     * 🚀 STEP 3: EXECUTE APPEND WITH FORCED CASTING
+     */
+    document.getElementById('btn-execute-append').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-execute-append');
+        const mappings = document.querySelectorAll('.map-input');
+        const originalHtml = btn.innerHTML;
+
+        let targetCols = [];
+        let selectCasts = [];
+
+        mappings.forEach(select => {
+            const sourceCol = select.value;
+            const targetCol = select.dataset.target;
+            const targetType = select.dataset.type;
+
+            if (sourceCol) {
+                targetCols.push(`"${targetCol}"`);
+                // 🚀 THE FORCE-CAST: We use TRY_CAST to convert types safely.
+                // If it can't convert (e.g. "ABC" to INT), it results in NULL instead of an error.
+                selectCasts.push(`TRY_CAST("${sourceCol}" AS ${targetType})`);
+            }
+        });
+
+        if (targetCols.length === 0) return alert("Please map at least one column.");
+
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Merging...`;
+        btn.disabled = true;
+
+        try {
+            const sql = `
+                INSERT INTO "${state.activeTable}" (${targetCols.join(', ')})
+                SELECT ${selectCasts.join(', ')} FROM "${tempAppendTable}"
+            `;
+            
+            await runQuery(sql);
+            await runQuery(`DROP TABLE "${tempAppendTable}"`);
+
+            addSystemMessage(`✅ **Neural Merge Complete.** Data from new file has been type-casted and appended to **${state.activeTable}**.`);
+            
+            // Refresh Spreadsheet
+            const { openSpreadsheet } = await import('./modules/spreadsheet.js');
+            await openSpreadsheet(state.activeTable);
+
+            setTimeout(() => {
+                window.closeAllModals();
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }, 1200);
+
+        } catch (err) {
+            console.error(err);
+            alert("Server is busy. Please try again.");
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    });
+
+    document.getElementById('btn-ai-match').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-ai-match');
+        const originalHtml = btn.innerHTML;
+
+        btn.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Matching...`;
+        btn.disabled = true;
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const { getAiSchemaMapping } = await import('./core/ai-agent.js');
+            const mapping = await getAiSchemaMapping(state.activeTable, tempAppendTable);
+            
+            console.log("AI Proposed Mapping:", mapping); // Debug log
+
+            // 1. Get all dropdowns
+            const selects = document.querySelectorAll('.map-input');
+            
+            // 2. Clean current selections
+            selects.forEach(s => s.value = "");
+
+            // 3. Normalized Matcher Loop
+            // We iterate through our ACTUAL dropdowns, not the AI's keys
+            selects.forEach(select => {
+                const targetColName = select.dataset.target;
+                
+                // Find if the AI provided a match for this specific target column
+                // We use case-insensitive keys because AI might return lowercase keys
+                const aiMatchKey = Object.keys(mapping).find(k => 
+                    k.toLowerCase().trim().replace(/_/g, '') === targetColName.toLowerCase().trim().replace(/_/g, '')
+                );
+
+                if (aiMatchKey) {
+                    const sourceColRecommended = mapping[aiMatchKey];
+                    
+                    // Now find the option that matches the recommended source column
+                    const options = Array.from(select.options);
+                    const bestOption = options.find(opt => 
+                        opt.value.toLowerCase().trim() === sourceColRecommended.toLowerCase().trim()
+                    );
+
+                    if (bestOption) {
+                        select.value = bestOption.value;
+                        
+                        // Visual feedback "Glow"
+                        select.style.transition = "all 0.4s";
+                        select.style.border = "2px solid #0b57d0";
+                        select.style.backgroundColor = "#e8f0fe";
+                        select.style.boxShadow = "0 0 10px rgba(11, 87, 208, 0.2)";
+                        
+                        setTimeout(() => {
+                            select.style.border = "";
+                            select.style.backgroundColor = "";
+                            select.style.boxShadow = "";
+                        }, 3000);
+                    }
+                }
+            });
+
+            addSystemMessage("✨ AI Auto-Match: I have linked columns by analyzing data patterns and semantics.");
+
+        } catch (err) {
+            console.error("AI Match Error:", err);
+            alert("Server is busy. Please try again.");
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    /**
+     * 🚀 UNSTRUCTURED APPEND (PDF/Image)
+     * Performs OCR -> Structuring -> Mapping Modal
+     */
+    document.getElementById('append-unstructured-picker').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file || !state.activeTable) return;
+
+        document.getElementById('menu-plus').classList.add('hidden');
+        addSystemMessage(`🧠 **Neural Extraction in progress...** Reading **${file.name}** to append to **${state.activeTable}**.`);
+
+        try {
+            // 1. Perform Local OCR
+            const { performOCR, structureText } = await import('./core/vision-agent.js');
+            const rawText = await performOCR(file);
+
+            // 2. Perform Neural Structuring (Mistral)
+            const structuredData = await structureText(rawText);
+
+            if (!structuredData || structuredData.length === 0) {
+                throw new Error("No tabular data could be identified in this document.");
+            }
+
+            // 3. Ingest JSON into a temporary table to enable the Mapping UI
+            const { ingestJsonArray } = await import('./core/database.js');
+            tempAppendTable = `temp_unstructured_${Date.now().toString().slice(-4)}`;
+            await ingestJsonArray(tempAppendTable, structuredData);
+
+            // 4. Fetch schemas for the Mapping UI
+            const targetSchema = await runQuery(`PRAGMA table_info('${state.activeTable}')`);
+            const sourceSchema = await runQuery(`PRAGMA table_info('${tempAppendTable}')`);
+
+            // 5. Open the Mapping Modal (reusing existing UI logic)
+            renderMappingUI(targetSchema, sourceSchema);
+            window.openModal('mapping-modal');
+            
+            addSystemMessage("✨ Extraction complete. Use **AI Auto-Match** to link the document fields to your vault.");
+
+        } catch (err) {
+            console.error("Unstructured Append Error:", err);
+            addSystemMessage("❌ **Extraction failed.** Server is busy. Please try again.", true);
+        } finally {
+            e.target.value = ""; // Reset picker
+        }
+    });
+
 }
 
 
