@@ -5197,3 +5197,67 @@ input[type="radio"]:focus {
     transform: scale(0.9); /* Visual feedback for touch */
     background: #e8f0fe;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.mapping-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid #eef2f6;
+}
+
+.target-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.col-type-tag {
+    font-size: 9px;
+    font-family: monospace;
+    background: #e8f0fe;
+    color: #0b57d0;
+    padding: 1px 4px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-top: 2px;
+}
