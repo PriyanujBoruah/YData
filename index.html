@@ -395,7 +395,7 @@
         </div>
 
         <!-- Hidden File Picker -->
-        <input type="file" id="file-picker" accept=".csv,.parquet,.png,.jpg,.jpeg,.pdf,.json,.xml,.xlsx,.txt" style="display:none">
+        <input type="file" id="file-picker" accept=".csv,.parquet,.png,.jpg,.jpeg,.pdf,.json,.xml,.xlsx,.txt" multiple style="display:none">
 
         <!-- Bottom Sheet Data Preview -->
         <div id="preview-overlay" class="overlay-hidden">
@@ -579,6 +579,11 @@
                 <!-- View 1: Configuration -->
                 <div id="pivot-config-view">
                     <div class="modal-body">
+                        <div class="form-group mb-6">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2 block">Strategic Goal</label>
+                            <textarea id="pivot-ai-goal" class="custom-select" rows="2" placeholder="e.g. Summarize revenue by month and category..."></textarea>
+                        </div>
+                        
                         <div class="form-group">
                             <label>Rows (Dimensions)</label>
                             <select id="pivot-row-select" class="custom-select"></select>
@@ -601,7 +606,8 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer flex gap-2">
+                        <button id="btn-ai-pivot" class="primary-btn">AI Auto-Pivot</button>
                         <button id="btn-run-pivot" class="primary-btn">Compute Pivot</button>
                     </div>
                 </div>
