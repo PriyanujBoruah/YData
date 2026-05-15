@@ -583,3 +583,68 @@ export async function generateProactiveInsights(tableName, schema) {
     const data = await res.json();
     return JSON.parse(data.choices[0].message.content).pills;
 }
+
+/**
+ * SCHEMA OPTIMIZER (Updated): Now identifies columns to MERGE and columns to DELETE.
+ */
+export async function getSchemaOptimizationPlan(tableName) {
+    const schema = await getTableSchema(tableName);
+    const sample = await runQuery(`SELECT * FROM "${tableName}" LIMIT 5`); // Increased sample to 5 for better noise detection
+
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [{
+                role: "system",
+                content: `You are a Data Architect optimizing a table extracted from unstructured OCR docs.
+                
+                SCHEMA: ${schema}
+                SAMPLE DATA: ${JSON.stringify(sample)}
+
+                TASK:
+                1. MERGE: Identify columns representing the same concept (e.g., "Inv#" and "Invoice_No").
+                2. DELETE: Identify "Noise" columns. These are columns that contain OCR fragments, random symbols, are mostly empty, or provide no business value.
+                
+                Return ONLY JSON: 
+                {
+                    "merge": {"Final_Name": ["old_col1", "old_col2"], ...},
+                    "delete": ["junk_col1", "junk_col2", ...]
+                }`
+            }],
+            response_format: { type: "json_object" }
+        })
+    });
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
+}
+
+/**
+ * PIVOT ARCHITECT: Maps a business goal to Pivot Table settings.
+ */
+export async function getAiPivotSettings(tableName, userGoal) {
+    const schema = await getTableSchema(tableName);
+    
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [{
+                role: "system",
+                content: `You are a Business Intelligence Architect. 
+                SCHEMA: ${schema}
+                GOAL: ${userGoal}
+
+                TASK: Select the best columns for a Pivot Table to achieve this goal.
+                Return ONLY JSON: {"row": "col_name", "col": "col_name", "val": "col_name", "agg": "SUM|COUNT|AVG"}`
+            }],
+            response_format: { type: "json_object" }
+        })
+    });
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
+}
