@@ -1,5 +1,7 @@
 // js/modules/pivot-engine.js
 import { runQuery } from '../core/database.js';
+import { getAiPivotSettings } from '../core/ai-agent.js';
+
 
 const modal = document.getElementById('pivot-modal');
 const configView = document.getElementById('pivot-config-view');
@@ -53,4 +55,44 @@ function renderPivotGrid(data) {
     body.innerHTML = data.map(row => {
         return `<tr>${columns.map(c => `<td>${row[c] !== null ? row[c] : '-'}</td>`).join('')}</tr>`;
     }).join('');
+}
+
+export function initPivotUI(activeTable) {
+    const btnAi = document.getElementById('btn-ai-pivot');
+    
+    btnAi?.addEventListener('click', async () => {
+        const goal = document.getElementById('pivot-ai-goal').value.trim();
+        if (!goal) return alert("Please enter a goal for the AI.");
+
+        // 1. Loading State
+        const originalHtml = btnAi.innerHTML;
+        btnAi.innerHTML = `<i data-lucide="loader-2" class="animate-spin w-4 h-4"></i> Architecting...`;
+        btnAi.disabled = true;
+        lucide.createIcons();
+
+        try {
+            // 2. Get Settings from AI
+            const settings = await getAiPivotSettings(activeTable(), goal);
+
+            // 3. Auto-configure the UI dropdowns
+            document.getElementById('pivot-row-select').value = settings.row;
+            document.getElementById('pivot-col-select').value = settings.col;
+            document.getElementById('pivot-val-select').value = settings.val;
+            document.getElementById('pivot-agg-select').value = settings.agg;
+
+            // 4. Execute the Pivot
+            await executePivot(activeTable());
+            
+            // Success Feedback
+            btnAi.innerHTML = originalHtml;
+            btnAi.disabled = false;
+            lucide.createIcons();
+
+        } catch (err) {
+            console.error(err);
+            btnAi.innerHTML = originalHtml;
+            btnAi.disabled = false;
+            alert("Server is busy. Please try again.");
+        }
+    });
 }
