@@ -258,7 +258,7 @@ function setupEventListeners() {
             // STEP 2: DUCKDB CONSOLIDATION
             if (masterDataPool.length > 0) {
                 try {
-                    addSystemMessage(`📦 Consolidating ${processedCount} documents into high-fidelity vault...`);
+                    addSystemMessage(`Consolidating ${processedCount} documents into high-fidelity vault...`);
                     
                     // Uses the robust injector to handle varying columns and create the table
                     await ingestJsonArray(masterTableName, masterDataPool);
@@ -271,7 +271,7 @@ function setupEventListeners() {
                     userPrompt.placeholder = `Ask about this consolidated batch...`;
                     updateDataSelector(state);
                     
-                    addSystemMessage(`✅ **Intelligence Complete.** Consolidated documents into unified table **${masterTableName}**.`);
+                    addSystemMessage(`**Intelligence Complete.** Consolidated documents into unified table **${masterTableName}**.`);
                     
                     // Trigger Post-Ingestion Audit
                     setTimeout(() => triggerIntelligenceCheckup(masterTableName), 1000);
@@ -282,7 +282,7 @@ function setupEventListeners() {
 
                 } catch (err) {
                     console.error("Batch Consolidation Error:", err);
-                    addSystemMessage(`❌ Server is busy. Please try again.`, true);
+                    addSystemMessage(`Server is busy. Please try again.`, true);
                 }
             }
         }
