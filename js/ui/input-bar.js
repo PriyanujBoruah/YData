@@ -4,6 +4,7 @@ export function initMenus() {
     const menus = {
         'btn-database': 'menu-database',
         'btn-tools': 'menu-tools',
+        'btn-plus-menu': 'menu-plus',
         'btn-settings-sidebar': 'settings-dropdown',
         'btn-data-selector': 'data-dropdown',
         'btn-top-options': 'menu-top-options',
