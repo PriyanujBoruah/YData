@@ -679,3 +679,95 @@ export async function getAiVizSuggestion(tableName) {
     const result = await response.json();
     return JSON.parse(result.choices[0].message.content);
 }
+
+/**
+ * ENTERPRISE DEEP RESEARCH ENGINE (Narrator v3.0)
+ * Uses Mistral Large to generate a 1000+ word Strategic Dossier.
+ */
+export async function* streamDeepResearch(activeTable) {
+    const profile = await getDeepTableProfile(activeTable);
+    const backgroundContext = getAgenticContextString();
+    
+    // STAGE 1: The Technical Forensic Chapter
+    yield { type: 'status', content: "📊 Data Engineer is performing forensic technical audit..." };
+    const techResponse = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-large-latest", // 🚀 High IQ for forensics
+            messages: [{ role: "system", content: `Write a 400-word "Technical Integrity Chapter" for the dataset: ${activeTable}. 
+            Data Profile: ${JSON.stringify(profile)}. 
+            Focus on: Data distribution, anomaly detection using Benford's Law, sparsity analysis, and schema scalability. 
+            Use highly professional, academic language.` }]
+        })
+    });
+    const techChapter = (await techResponse.json()).choices[0].message.content;
+
+    // STAGE 2: The Business Economics Chapter
+    yield { type: 'status', content: "📈 Business Analyst is architecting growth models..." };
+    const bizResponse = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-large-latest",
+            messages: [{ role: "system", content: `Write a 400-word "Business Logic & Unit Economics Chapter" based on these technical findings: ${techChapter}. 
+            Focus on: Revenue concentration (Pareto), CAC vs LTV projections, and market expansion vectors. 
+            Use terminology like 'Contribution Margin', 'EBITDA pathways', and 'Market Skew'.` }]
+        })
+    });
+    const bizChapter = (await bizResponse.json()).choices[0].message.content;
+
+    // STAGE 3: Final 1000+ Word Master Synthesis
+    yield { type: 'status', content: "🏛️ Chief Strategy Officer is synthesizing the Master Dossier..." };
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-large-latest", // 🚀 The "Big Brain" for the final weave
+            stream: true,
+            messages:[
+                { 
+                    role: "system", 
+                    content: `You are a world-class Management Consultant (ex-McKinsey/BCG). 
+                    
+                    TASK: Generate an extremely in-depth Strategic Dossier exceeding 1000 words.
+                    CONTEXT: ${backgroundContext}
+                    TECH DATA: ${techChapter}
+                    BIZ DATA: ${bizChapter}
+                    
+                    STRUCTURE:
+                    1. # EXECUTIVE SUMMARY (High-level vision)
+                    2. # CHAPTER 1: DATA FORENSICS & INTEGRITY (Deep dive into the tech data provided)
+                    3. # CHAPTER 2: STRATEGIC GROWTH VECTORS (Detailed ROI and market analysis)
+                    4. # CHAPTER 3: INDUSTRY-SPECIFIC COMPETITIVE MOATS (Tailored specifically to the Company Context)
+                    5. # CHAPTER 4: RISK MITIGATION & COMPLIANCE (Addressing UAE/USA/Canada regulatory needs)
+                    6. # CHAPTER 5: TACTICAL 12-MONTH ROADMAP (Step-by-step execution)
+
+                    INSTRUCTION: Be extremely verbose. Provide detailed commentary for every observation. 
+                    Use sophisticated Markdown, tables, and bold highlights.` 
+                },
+                { role: "user", content: "Begin the 1000-word Strategic Synthesis." }
+            ],
+            temperature: 0.7 // Higher temp for creative, long-form writing
+        })
+    });
+
+    // Final Stream Handling
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                try {
+                    const json = JSON.parse(line.replace('data: ', ''));
+                    const content = json.choices[0].delta.content;
+                    if (content) yield { type: 'text', content: content };
+                } catch (e) {}
+            }
+        }
+    }
+}
