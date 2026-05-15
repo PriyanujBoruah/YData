@@ -18,6 +18,8 @@ export async function initDatabase() {
     const logger = new duckdb.ConsoleLogger();
     db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+
+    window.db = db; 
     
     conn = await db.connect();
     
@@ -122,29 +124,34 @@ export async function registerFile(file) {
     return tableName;
 }
 
-/**
- * 🚀 HELPER: Ingests a standard Javascript Array of Objects into a DuckDB Table.
- * This bypasses the need for the "json" Wasm extension entirely.
- */
-async function ingestJsonArray(tableName, jsonArray) {
-    if (jsonArray.length === 0) throw new Error("File is empty.");
+// js/core/database.js
 
-    // 1. Identify columns from the first object
-    const cols = Object.keys(jsonArray[0]);
-    const colDef = cols.map(c => `"${c}" VARCHAR`).join(', ');
+/**
+ * ROBUST JSON INJECTOR: Creates a unified table from an array of objects
+ */
+export async function ingestJsonArray(tableName, jsonArray) {
+    if (!jsonArray || jsonArray.length === 0) return;
+
+    // 1. Identify EVERY unique column name across all rows
+    const allKeys = new Set();
+    jsonArray.forEach(row => Object.keys(row).forEach(key => allKeys.add(key)));
+    const columnNames = Array.from(allKeys);
 
     // 2. Create the table
+    const colDef = columnNames.map(c => `"${c}" VARCHAR`).join(', ');
     await conn.query(`CREATE TABLE "${tableName}" (${colDef})`);
 
-    // 3. Batch Insert (using single quotes and escaping)
+    // 3. Insert rows
     for (const row of jsonArray) {
-        const values = cols.map(c => {
-            const val = row[c] === null || row[c] === undefined ? '' : String(row[c]).replace(/'/g, "''");
-            return `'${val}'`;
+        // Only insert columns that exist in THIS specific row
+        const rowKeys = Object.keys(row).map(k => `"${k}"`).join(', ');
+        const rowValues = Object.values(row).map(val => {
+            const safeVal = val === null || val === undefined ? '' : String(val).replace(/'/g, "''");
+            return `'${safeVal}'`;
         }).join(', ');
-        await conn.query(`INSERT INTO "${tableName}" VALUES (${values})`);
+
+        await conn.query(`INSERT INTO "${tableName}" (${rowKeys}) VALUES (${rowValues})`);
     }
-    console.log(`Successfully ingested ${jsonArray.length} rows into ${tableName} via JS bridge.`);
 }
 
 /**
