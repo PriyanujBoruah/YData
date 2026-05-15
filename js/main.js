@@ -1,11 +1,11 @@
 // js/main.js
 
-import { initDatabase, registerFile, runQuery, registerFromURL, getTableSchema, loadTableFromParquet  } from './core/database.js';
+import { initDatabase, registerFile, runQuery, registerFromURL, getTableSchema, loadTableFromParquet, ingestJsonArray  } from './core/database.js';
 import { showTablePreview, hideTablePreview } from './ui/overlays.js';
-import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights  } from './core/ai-agent.js';
+import { askAgentStream, streamDataStory, streamAdvancedNarrative, generateProactiveInsights, getSchemaOptimizationPlan } from './core/ai-agent.js';
 import { initMenus } from './ui/input-bar.js';
 import { initVizEngine } from './modules/viz-engine.js';
-import { openPivotModal, executePivot } from './modules/pivot-engine.js';
+import { openPivotModal, executePivot, initPivotUI } from './modules/pivot-engine.js';
 import { openPrivacyModal, runPrivacyScan, silentPrivacyScan, applyRedaction } from './modules/privacy.js';
 import { openQualityModal, runHealthAudit, runAnomalySpotter, silentQualityAudit } from './modules/quality.js';
 import { downloadCSV, downloadExcel } from './modules/export-engine.js';
@@ -20,7 +20,7 @@ import { updateDataSelector } from './ui/data-selector.js';
 import { showSmartChips } from './ui/chat.js';
 import { openHeadsUpModal, refreshHeadsUpList } from './modules/heads-up.js';
 import { initAgenticBackground, openAgenticBgModal } from './modules/agentic-bg.js';
-import { performOCR, structureText, getEmbeddings } from './core/vision-agent.js';
+import { performOCR, structureText, getEmbeddings, synthesizeToUnifiedCSV } from './core/vision-agent.js';
 import { loadAllFromStorage, deleteFromStorage, renameInStorage } from './core/storage.js';
 import { fetchWithRetry } from './core/utils.js';
 import { runAutoClean } from './modules/auto-clean.js';
@@ -174,6 +174,7 @@ async function init() {
             initVizEngine();
             initWorkspaceUI();
             initLibraryUI();
+            initPivotUI(() => state.activeTable);
             
             // These specific calls perform SQL queries immediately
             await initAgenticBackground(); 
@@ -198,130 +199,162 @@ async function init() {
  */
 function setupEventListeners() {
     
-    // --- Data Ingestion & Proactive Insights ---
+    // --- Data Ingestion & Proactive Insights (Batch Enabled) ---
+    // --- Data Ingestion & Proactive Insights (Sequential Batch Enabled) ---
     filePicker.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
 
-        const extension = file.name.split('.').pop().toLowerCase();
-        const tableName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-        const isMultimodal = ['png', 'jpg', 'jpeg', 'pdf'].includes(extension);
+        // 1. Safety Guard: Limit Batch Size
+        if (files.length > 25) {
+            alert("Batch limit exceeded. Please upload a maximum of 25 documents at once.");
+            filePicker.value = ""; 
+            return;
+        }
 
-        userPrompt.placeholder = `Ingesting ${file.name}...`;
-        
-        try {
-            // Drop existing table if it already exists to avoid Catalog Error on re-upload
-            if (state.allTables.includes(tableName)) {
-                await runQuery(`DROP TABLE IF EXISTS "${tableName}"`);
+        // 2. Identify File Types
+        const unstructuredFiles = files.filter(f => ['png', 'jpg', 'jpeg', 'pdf'].includes(f.name.split('.').pop().toLowerCase()));
+        const structuredFiles = files.filter(f => !['png', 'jpg', 'jpeg', 'pdf'].includes(f.name.split('.').pop().toLowerCase()));
+
+        // ============================================================
+        // BRANCH 1: MULTIMODAL BATCH PIPELINE (High-Fidelity Consolidation)
+        // ============================================================
+        if (unstructuredFiles.length > 0) {
+            const batchUI = createBatchIngestionCard(unstructuredFiles.length);
+            const masterTableName = `batch_unified_${Date.now().toString().slice(-4)}`;
+            let masterDataPool = []; 
+            let processedCount = 0;
+
+            // STEP 1: INDIVIDUAL NEURAL EXTRACTION (Sequential for RAM safety)
+            for (const file of unstructuredFiles) {
+                const fileRow = batchUI.addFile(file.name);
+                fileRow.querySelector('.status-label').innerText = 'Extracting...';
+
+                try {
+                    // A. Local OCR
+                    const rawText = await performOCR(file);
+                    
+                    // B. Neural Structuring (Processed document-by-document for highest precision)
+                    const structuredData = await structureText(rawText); 
+                    
+                    // C. Add Source Metadata (Crucial for Enterprise Audit trails)
+                    if (Array.isArray(structuredData)) {
+                        structuredData.forEach(row => {
+                            row.source_document = file.name;
+                            masterDataPool.push(row);
+                        });
+                    }
+
+                    processedCount++;
+                    batchUI.updateProgress(processedCount, unstructuredFiles.length);
+                    batchUI.markFileDone(fileRow);
+
+                } catch (err) {
+                    console.error(`Failed ${file.name}:`, err);
+                    fileRow.querySelector('.status-label').innerHTML = `<span class="text-red-500">Error</span>`;
+                }
             }
 
-            let schema = "";
+            // STEP 2: DUCKDB CONSOLIDATION
+            if (masterDataPool.length > 0) {
+                try {
+                    addSystemMessage(`📦 Consolidating ${processedCount} documents into high-fidelity vault...`);
+                    
+                    // Uses the robust injector to handle varying columns and create the table
+                    await ingestJsonArray(masterTableName, masterDataPool);
 
-            // ==========================================
-            // BRANCH 1: MULTIMODAL PIPELINE (IMAGE/PDF)
-            // ==========================================
-            if (isMultimodal) {
-                // Initialize the Progress Card
-                const progress = createIngestionProgressCard(file.name);
+                    state.activeTable = masterTableName;
+                    if (!state.allTables.includes(masterTableName)) state.allTables.push(masterTableName);
+                    
+                    // Update UI State
+                    introScreen.style.display = 'none';
+                    userPrompt.placeholder = `Ask about this consolidated batch...`;
+                    updateDataSelector(state);
+                    
+                    addSystemMessage(`✅ **Intelligence Complete.** Consolidated documents into unified table **${masterTableName}**.`);
+                    
+                    // Trigger Post-Ingestion Audit
+                    setTimeout(() => triggerIntelligenceCheckup(masterTableName), 1000);
 
-                // 1. Tesseract OCR (Local)
-                const rawText = await performOCR(file);
-                if (!rawText || rawText.trim() === "") throw new Error("No text found in document.");
-                progress.updateStep(1, 'completed');
-                progress.updateStep(2, 'active');
+                    // Generate Insights for the new consolidated table
+                    const schema = await getTableSchema(masterTableName);
+                    setupProactivePills(masterTableName, schema);
 
-                // 2. Mistral Structuring (Cloud)
-                const structuredData = await structureText(rawText);
-                if (!structuredData || structuredData.length === 0) throw new Error("Could not extract structure.");
-                progress.updateStep(2, 'completed');
-                progress.updateStep(3, 'active');
+                } catch (err) {
+                    console.error("Batch Consolidation Error:", err);
+                    addSystemMessage(`❌ Server is busy. Please try again.`, true);
+                }
+            }
+        }
 
-                // 3. RAG Embeddings (Cloud)
-                const vector = await getEmbeddings(rawText);
-                progress.updateStep(3, 'completed');
-                progress.updateStep(4, 'active');
+        // ============================================================
+        // BRANCH 2: STRUCTURED PIPELINE (CSV/Excel/JSON/XML)
+        // ============================================================
+        for (const file of structuredFiles) {
+            const tableName = file.name.split('.')[0].replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+            userPrompt.placeholder = `Indexing ${file.name}...`;
 
-                // 4. Create Knowledge Base (RAG Table)
-                await runQuery(`CREATE TABLE IF NOT EXISTS knowledge_base (file_name VARCHAR, raw_content TEXT, embedding DOUBLE[])`);
-                const safeText = rawText.replace(/'/g, "''"); 
-                await runQuery(`INSERT INTO knowledge_base VALUES ('${file.name}', '${safeText}', [${vector.join(',')}])`);
-
-                // 5. Create the Structured Table for AG Grid
-                const cols = Object.keys(structuredData[0]);
-                const colDef = cols.map(c => `"${c}" VARCHAR`).join(', ');
-                await runQuery(`CREATE TABLE "${tableName}" (${colDef})`);
-                
-                for (let row of structuredData) {
-                    const values = cols.map(c => {
-                        const val = row[c] ? String(row[c]).replace(/'/g, "''") : '';
-                        return `'${val}'`;
-                    }).join(', ');
-                    await runQuery(`INSERT INTO "${tableName}" VALUES (${values})`);
+            try {
+                // Cleanup existing table to prevent catalog collisions
+                if (state.allTables.includes(tableName)) {
+                    await runQuery(`DROP TABLE IF EXISTS "${tableName}"`);
                 }
 
-                schema = cols.map(c => `${c} (VARCHAR)`).join(', ');
-                progress.updateStep(4, 'completed');
-            } 
-            // ==========================================
-            // BRANCH 2: STRUCTURED PIPELINE (CSV/Excel/JSON/XML)
-            // ==========================================
-            else {
+                // Register the file into DuckDB
                 await registerFile(file);
-                schema = await getTableSchema(tableName);
-            }
+                const schema = await getTableSchema(tableName);
 
-            // ==========================================
-            // COMMON UI UPDATES & PROACTIVE INSIGHTS
-            // ==========================================
-            state.activeTable = tableName;
-            if (!state.allTables.includes(tableName)) state.allTables.push(tableName);
+                // Update State
+                state.activeTable = tableName;
+                if (!state.allTables.includes(tableName)) state.allTables.push(tableName);
 
-            // TRIGGER THE AUTOMATED CHECKUP
-            if (!isMultimodal) {
+                // Update UI
+                introScreen.style.display = 'none';
+                userPrompt.placeholder = `Ask about ${tableName}...`;
+                updateDataSelector(state); 
+                
+                await showSmartChips(tableName, runQuery);
                 addSystemMessage(`✅ Successfully indexed **${file.name}**.`);
                 
-                // Delayed slightly so the user sees the "Indexed" message first
+                // Trigger Post-Ingestion Audit
                 setTimeout(() => triggerIntelligenceCheckup(tableName), 800);
-            }
-            
-            introScreen.style.display = 'none';
-            userPrompt.placeholder = `Ask about ${tableName}...`;
-            userPrompt.focus();
-            
-            updateDataSelector(state); 
-            await showSmartChips(tableName, runQuery);
-
-            // --- PROACTIVE INSIGHTS GENERATION ---
-            const pillsContainer = document.getElementById('proactive-insights-container');
-            const pillsList = document.getElementById('proactive-pills');
-            
-            if (pillsContainer && pillsList) {
-                pillsContainer.classList.remove('hidden');
-                pillsList.innerHTML = `<div class="p-4 text-xs italic text-gray-400">Generating insights...</div>`;
-
-                const insights = await generateProactiveInsights(tableName, schema);
                 
-                pillsList.innerHTML = insights.map(text => `<button class="proactive-pill">${text}</button>`).join('');
+                // Generate dynamic suggestion pills
+                setupProactivePills(tableName, schema);
 
-                document.querySelectorAll('.proactive-pill').forEach(pill => {
-                    pill.addEventListener('click', () => {
-                        const promptText = pill.innerText.replace(/[\u{1F300}-\u{1F6FF}]/gu, '').trim();
-                        userPrompt.value = promptText;
-                        handleSendMessage(); 
-                    });
-                });
+            } catch (err) {
+                console.error("Structured Ingestion Error:", err);
+                addSystemMessage(`❌ Server is busy. Please try again.`, true);
             }
-
-            if (!isMultimodal) {
-                addSystemMessage(`✅ Successfully indexed **${file.name}**. I've mapped the schema and prepared proactive insights.`);
-            }
-
-        } catch (err) {
-            console.error("Ingestion Error:", err);
-            addSystemMessage(`❌ Ingestion Failed: ${err.message}`, true);
-            userPrompt.placeholder = "Ask Krata AI...";
         }
+
+        // Clear file picker so the same files can be re-uploaded if needed
+        filePicker.value = "";
     });
+
+    /**
+     * HELPER: Logic to generate and display proactive insights
+     */
+    async function setupProactivePills(tableName, schema) {
+        const pillsContainer = document.getElementById('proactive-insights-container');
+        const pillsList = document.getElementById('proactive-pills');
+        
+        if (pillsContainer && pillsList) {
+            pillsContainer.classList.remove('hidden');
+            pillsList.innerHTML = `<div class="p-4 text-xs italic text-gray-400">Analyzing schema for insights...</div>`;
+
+            const insights = await generateProactiveInsights(tableName, schema);
+            pillsList.innerHTML = insights.map(text => `<button class="proactive-pill">${text}</button>`).join('');
+
+            document.querySelectorAll('.proactive-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    const promptText = pill.innerText.replace(/[\u{1F300}-\u{1F6FF}]/gu, '').trim();
+                    userPrompt.value = promptText;
+                    handleSendMessage(); 
+                });
+            });
+        }
+    }
 
     // ==========================================
     // URL IMPORT LISTENERS
@@ -1301,6 +1334,112 @@ function createIngestionProgressCard(fileName) {
 }
 
 /**
+ * UI HELPER: Creates a sophisticated card to track 25-doc batches
+ */
+function createBatchIngestionCard(fileCount) {
+    const idPrefix = 'batch-' + Date.now();
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message bot-message';
+    msgDiv.innerHTML = `
+        <div class="bot-avatar"><img src="/assets/logo.png" alt="Krata AI"></div>
+        <div class="bubble">
+            <div class="ingestion-card" style="max-width: 450px;">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Neural Batch Process</div>
+                    <div class="text-[10px] font-bold text-gray-400" id="${idPrefix}-count">0 / ${fileCount} Documents</div>
+                </div>
+                
+                <!-- Overall Progress Bar -->
+                <div class="util-bg mb-4" style="height: 4px; background: #e8f0fe;">
+                    <div id="${idPrefix}-progress" class="util-fill" style="width: 0%; background: #0b57d0; height: 100%; transition: width 0.3s;"></div>
+                </div>
+
+                <div id="${idPrefix}-file-list" class="space-y-2 max-h-40 overflow-y-auto pr-2">
+                    <!-- Individual files injected here -->
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('messages').appendChild(msgDiv);
+    lucide.createIcons();
+    scrollToBottom();
+
+    return {
+        updateProgress: (current, total) => {
+            const pct = (current / total) * 100;
+            document.getElementById(`${idPrefix}-progress`).style.width = `${pct}%`;
+            document.getElementById(`${idPrefix}-count`).innerText = `${current} / ${total} Documents`;
+        },
+        addFile: (fileName) => {
+            const fileId = btoa(fileName).substring(0, 8);
+            const row = document.createElement('div');
+            row.id = `${idPrefix}-${fileId}`;
+            row.className = 'flex justify-between items-center text-[11px] p-2 bg-gray-50 rounded-lg border border-gray-100';
+            row.innerHTML = `
+                <span class="truncate max-w-[200px]">${fileName}</span>
+                <span class="status-label text-gray-400">Waiting...</span>
+            `;
+            document.getElementById(`${idPrefix}-file-list`).appendChild(row);
+            return row;
+        },
+        markFileDone: (fileRow) => {
+            fileRow.classList.add('bg-green-50', 'border-green-100');
+            fileRow.querySelector('.status-label').innerHTML = '<i data-lucide="check" class="text-green-600 w-3 h-3"></i>';
+            lucide.createIcons();
+        }
+    };
+}
+
+/**
+ * EXECUTES SCHEMA MERGE & NOISE REDUCTION (Hardened against Hallucinations)
+ */
+async function applySchemaOptimization(tableName, plan) {
+    try {
+        // 🚀 THE FIX: Get the ACTUAL columns currently in the table
+        const columnsData = await runQuery(`PRAGMA table_info('${tableName}')`);
+        const actualCols = new Set(columnsData.map(c => c.name)); 
+
+        const mergedCols = new Set();
+        let selectClauses = [];
+
+        // 1. Process Merges with Existence Check
+        if (plan.merge) {
+            for (const [newName, oldCols] of Object.entries(plan.merge)) {
+                // 🚀 Ensure we only try to merge columns that REALLY exist
+                const validOldCols = oldCols.filter(c => actualCols.has(c));
+                
+                if (validOldCols.length > 0) {
+                    const safeOldCols = validOldCols.map(c => `"${c}"`).join(', ');
+                    selectClauses.push(`COALESCE(${safeOldCols}) AS "${newName}"`);
+                    validOldCols.forEach(c => mergedCols.add(c));
+                }
+            }
+        }
+
+        // 2. Filter Deletes with Existence Check
+        const deleteCols = new Set((plan.delete || []).filter(c => actualCols.has(c)));
+
+        // 3. Keep originals (Un-merged & Un-deleted)
+        for (const col of actualCols) {
+            if (!mergedCols.has(col) && !deleteCols.has(col)) {
+                selectClauses.push(`"${col}"`);
+            }
+        }
+
+        if (selectClauses.length === 0) return; 
+
+        const tempTable = `${tableName}_optimized`;
+        await runQuery(`CREATE TABLE "${tempTable}" AS SELECT ${selectClauses.join(', ')} FROM "${tableName}"`);
+        await runQuery(`DROP TABLE "${tableName}"`);
+        await runQuery(`ALTER TABLE "${tempTable}" RENAME TO "${tableName}"`);
+        
+        console.log("Schema Optimization Complete.");
+    } catch (e) {
+        console.error("Optimization Error:", e);
+    }
+}
+
+/**
  * 7. MOVE VISUALS TO CHAT
  */
 
@@ -1325,22 +1464,36 @@ window.addEventListener('send-viz-to-chat', (e) => {
  * Performs Math Forensics, LLM Schema Mapping, and Strategic Discovery.
  */
 
+/**
+ * ADVANCED INTELLIGENCE CHECKUP ENGINE
+ * Performs Math Forensics, LLM Schema Mapping, and Schema Optimization (Merge + Noise Reduction).
+ */
 async function triggerIntelligenceCheckup(tableName) {
     // 1. Run All Diagnostics in Parallel for High Performance
-    const [privacy, quality, forensics, whales, schemaMapping] = await Promise.all([
-        silentPrivacyScan(tableName),       // PII Shielding
-        silentQualityAudit(tableName),      // Cleaning & Standardization
-        runForensicAudit(tableName),        // Benford's Law
-        detectWhales(tableName),            // Pareto 80/20 Rule
-        getSmartSchemaMapping(tableName)    // LLM Semantic Translation
+    const [privacy, quality, forensics, whales, schemaMapping, optPlan] = await Promise.all([
+        silentPrivacyScan(tableName),        // PII Shielding
+        silentQualityAudit(tableName),       // Cleaning & Standardization
+        runForensicAudit(tableName),         // Benford's Law
+        detectWhales(tableName),             // Pareto 80/20 Rule
+        getSmartSchemaMapping(tableName),    // LLM Semantic Translation
+        getSchemaOptimizationPlan(tableName) // NEW: Schema Merge & Noise Reduction Plan
     ]);
 
     const cardId = `plan-${Date.now()}`;
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message bot-message';
-    
+
+    // 🚀 LOGIC: Determine if Optimization is needed (Merge or Delete)
+    const hasMergePotential = optPlan.merge && Object.keys(optPlan.merge).length > 0;
+    const hasDeletePotential = optPlan.delete && optPlan.delete.length > 0;
+    const needsOptimization = hasMergePotential || hasDeletePotential;
+
+    // Calculate total columns targeted for removal/merge
+    const mergeCount = hasMergePotential ? Object.values(optPlan.merge).flat().length : 0;
+    const deleteCount = hasDeletePotential ? optPlan.delete.length : 0;
+
     msgDiv.innerHTML = `
-        <div class="bot-avatar"><img src="assets/logo.png" alt="Krata AI"></div>
+        <div class="bot-avatar"><img src="/assets/logo.png" alt="Krata AI"></div>
         <div class="bubble">
             <div class="ingestion-card" style="max-width: 550px; padding: 24px; border-radius: 24px; border: 1px solid #eef2f6;">
                 <h3 class="text-sm font-bold mb-6 flex items-center gap-2">
@@ -1349,7 +1502,7 @@ async function triggerIntelligenceCheckup(tableName) {
                 </h3>
 
                 <div class="intelligence-plan">
-                    <!-- Step 1: Privacy -->
+                    <!-- Step 1: Privacy & Compliance -->
                     <div class="plan-step" id="${cardId}-step-privacy">
                         <div class="step-icon-dot"><i data-lucide="shield-check" class="w-4 h-4 ${privacy.length > 0 ? 'text-red-500' : 'text-green-500'}"></i></div>
                         <div class="step-content">
@@ -1359,16 +1512,30 @@ async function triggerIntelligenceCheckup(tableName) {
                         </div>
                     </div>
 
-                    <!-- Step 2: Forensic Integrity -->
+                    <!-- Step 2: Schema Optimization (Consolidation & Noise Reduction) -->
+                    <div class="plan-step" id="${cardId}-step-optimize">
+                        <div class="step-icon-dot"><i data-lucide="git-merge" class="w-4 h-4 ${needsOptimization ? 'text-blue-500' : 'text-gray-400'}"></i></div>
+                        <div class="step-content">
+                            <span class="step-title">Schema Optimization</span>
+                            <span class="step-desc">
+                                ${needsOptimization 
+                                    ? `Identified redundant data. I can consolidate <strong>${mergeCount}</strong> fields ${hasDeletePotential ? `and remove <strong>${deleteCount}</strong> OCR noise columns` : ''}.` 
+                                    : 'Table schema is already lean and normalized.'}
+                            </span>
+                            ${needsOptimization ? `<div class="step-actions"><button class="text-btn" id="${cardId}-fix-optimize">Optimize Schema</button></div>` : ''}
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Forensic Integrity -->
                     <div class="plan-step" id="${cardId}-step-forensics">
                         <div class="step-icon-dot"><i data-lucide="fingerprint" class="w-4 h-4 ${forensics ? 'text-orange-500' : 'text-gray-400'}"></i></div>
                         <div class="step-content">
                             <span class="step-title">Forensic Audit</span>
-                            <span class="step-desc">${forensics ? `Unusual digit distribution in <strong>${forensics.column}</strong> (Confidence: ${forensics.confidence}). May indicate manual manipulation or fraud.` : 'Benford’s Law scan indicates natural numerical distribution.'}</span>
+                            <span class="step-desc">${forensics ? `Unusual digit distribution in <strong>${forensics.column}</strong>. May indicate manual manipulation.` : 'Benford’s Law scan indicates natural numerical distribution.'}</span>
                         </div>
                     </div>
 
-                    <!-- Step 3: Quality & Cleansing -->
+                    <!-- Step 4: Quality & Cleansing -->
                     <div class="plan-step" id="${cardId}-step-quality">
                         <div class="step-icon-dot"><i data-lucide="microscope" class="w-4 h-4 ${quality.nulls > 0 ? 'text-blue-500' : 'text-gray-400'}"></i></div>
                         <div class="step-content">
@@ -1378,7 +1545,7 @@ async function triggerIntelligenceCheckup(tableName) {
                         </div>
                     </div>
 
-                    <!-- Step 4: Strategic Discovery -->
+                    <!-- Step 5: Strategic Discovery -->
                     <div class="plan-step">
                         <div class="step-icon-dot"><i data-lucide="target" class="w-4 h-4 ${whales ? 'text-purple-600' : 'text-gray-400'}"></i></div>
                         <div class="step-content">
@@ -1387,12 +1554,12 @@ async function triggerIntelligenceCheckup(tableName) {
                         </div>
                     </div>
 
-                    <!-- Step 5: Semantic Mapping -->
+                    <!-- Step 6: Semantic Mapping -->
                     <div class="plan-step" id="${cardId}-step-schema">
                         <div class="step-icon-dot"><i data-lucide="type" class="w-4 h-4 ${schemaMapping ? 'text-blue-600' : 'text-gray-400'}"></i></div>
                         <div class="step-content">
                             <span class="step-title">Semantic Translation</span>
-                            <span class="step-desc">${schemaMapping ? `I've mapped technical headers to business terms (e.g., <em>${Object.keys(schemaMapping)[0]}</em> → <strong>${Object.values(schemaMapping)[0]}</strong>).` : 'Column headers are already descriptive and analysis-ready.'}</span>
+                            <span class="step-desc">${schemaMapping ? `I've mapped technical headers to business terms.` : 'Column headers are already descriptive and analysis-ready.'}</span>
                             ${schemaMapping ? `<div class="step-actions"><button class="text-btn" id="${cardId}-fix-schema">Rename All</button></div>` : ''}
                         </div>
                     </div>
@@ -1415,48 +1582,55 @@ async function triggerIntelligenceCheckup(tableName) {
 
     // --- BUTTON LOGIC ---
 
-    // Apply All
+    // 1. APPLY ALL
     document.getElementById(`${cardId}-apply-all`).addEventListener('click', async () => {
         const btn = document.getElementById(`${cardId}-apply-all`);
         btn.disabled = true;
         btn.innerText = "Executing Plan...";
 
-        // 1. Run all modifications
+        // Modification Chain (Optimization runs before cleaning for best efficiency)
         if (privacy.length > 0) for (let p of privacy) await applyRedaction(tableName, p.column);
+        if (needsOptimization) await applySchemaOptimization(tableName, optPlan);
         if (quality.nulls > 0) await runAutoClean(tableName);
         if (schemaMapping) await applySchemaRenaming(tableName, schemaMapping);
         
-        // 2. REFRESH THE UI
-        // Update the Sidebar and Data Selector
+        // Refresh UI
         updateDataSelector(state); 
-        
-        // If the Spreadsheet is currently open, reload its data
         const spreadsheetView = document.getElementById('spreadsheet-view');
         if (spreadsheetView && !spreadsheetView.classList.contains('view-hidden')) {
             import('./modules/spreadsheet.js').then(mod => mod.openSpreadsheet(tableName));
         }
 
         btn.innerText = "Plan Executed";
-        addSystemMessage(`**Intelligence Plan Executed.** ${tableName} is now optimized.`);
-        
-        // Clean up icons again since we added new elements
-        lucide.createIcons();
-        
+        addSystemMessage(`✅ **Intelligence Plan Executed.** ${tableName} has been secured and normalized.`);
+        if (window.lucide) lucide.createIcons();
         setTimeout(() => msgDiv.remove(), 2000);
     });
 
-    // Individual Privacy Fix
+    // 2. Individual Fix: Privacy
     document.getElementById(`${cardId}-fix-privacy`)?.addEventListener('click', async (e) => {
         e.target.innerText = "Masking...";
         for (let p of privacy) await applyRedaction(tableName, p.column);
         e.target.innerText = "Completed";
+        e.target.disabled = true;
     });
 
-    // Individual Schema Fix
+    // 3. Individual Fix: Optimize (Merge + Noise Removal)
+    document.getElementById(`${cardId}-fix-optimize`)?.addEventListener('click', async (e) => {
+        const originalText = e.target.innerText;
+        e.target.innerText = "Optimizing...";
+        await applySchemaOptimization(tableName, optPlan);
+        e.target.innerText = "Completed";
+        e.target.disabled = true;
+        updateDataSelector(state);
+    });
+
+    // 4. Individual Fix: Schema Rename
     document.getElementById(`${cardId}-fix-schema`)?.addEventListener('click', async (e) => {
         e.target.innerText = "Renaming...";
         await applySchemaRenaming(tableName, schemaMapping);
         e.target.innerText = "Completed";
+        e.target.disabled = true;
     });
 }
 
