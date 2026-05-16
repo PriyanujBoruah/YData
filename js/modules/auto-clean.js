@@ -36,23 +36,41 @@ export async function runAutoClean(tableName) {
                 cleanActions.push(`Standardized and imputed Mean in [${colName}]`);
             } 
             
-            // 2. HARDENED TEMPORAL CLEANING
-            // 2. HARDENED TEMPORAL CLEANING (Bharat Focused)
+            // 2. HARDENED TEMPORAL CLEANING (Multi-Format Support)
+            // 2. HARDENED TEMPORAL CLEANING (V1.1 - Multi-Format & Trailing Character Safe)
             else if (isTemporal) {
-                // 🚀 THE FIX: A "Coalesce Chain" that tries Indian formats first
+                /**
+                 * 🚀 THE STRATEGY:
+                 * 1. Use try_strptime: It returns NULL instead of crashing if the format is wrong.
+                 * 2. Consume Trailing Characters: Add %H:%M or similar to handle time stamps.
+                 * 3. Substring extraction: If all else fails, grab just the first 10 characters (the date).
+                 */
                 const castChain = [
-                    `TRY_CAST("${colName}" AS DATE)`,           // ISO Format
-                    `strptime("${colName}", '%d-%m-%Y')`,      // Indian (21-03-2018)
-                    `strptime("${colName}", '%d/%m/%Y')`,      // Indian Slash (21/03/2018)
-                    `strptime(SUBSTRING("${colName}", 1, 15), '%a %b %d %Y')`, // Messy JS format
-                    `'1970-01-01'::DATE`                        // Fallback
+                    // 1. Try native timestamp (Very good at guessing 12/1/2010 8:26)
+                    `TRY_CAST("${colName}" AS TIMESTAMP)`,
+                    
+                    // 2. Try US/Retail format with time (12/1/2010 8:26)
+                    `try_strptime("${colName}", '%m/%d/%Y %H:%M')`,
+                    
+                    // 3. Try UK/India format with time (21/03/2018 14:30)
+                    `try_strptime("${colName}", '%d/%m/%Y %H:%M')`,
+                    
+                    // 4. Try Indian format with dashes (21-03-2018)
+                    // We take the first 10 chars to ensure "trailing characters" don't kill it
+                    `try_strptime(SUBSTRING("${colName}", 1, 10), '%d-%m-%Y')`,
+                    
+                    // 5. Try Indian format with slashes (21/03/2018)
+                    `try_strptime(SUBSTRING("${colName}", 1, 10), '%d/%m/%Y')`,
+                    
+                    // 6. Hard Fallback
+                    `'1970-01-01'::DATE`
                 ].join(', ');
 
                 const casted = `COALESCE(${castChain})`;
                 
-                // Use window function to fill gaps with the last valid date
+                // Fill gaps using Last Value Observed (LOCF)
                 selectClauses.push(`last_value(${casted} IGNORE NULLS) OVER (ORDER BY rowid) AS "${colName}"`);
-                cleanActions.push(`Standardized Bharat-date formats in [${colName}]`);
+                cleanActions.push(`Standardized mixed temporal patterns in [${colName}]`);
             }
 
             // 3. HARDENED TEXT & EMOJI SCRUBBING
