@@ -44,7 +44,9 @@ export async function createKrataBook(activeTable, config) {
                 RULES:
                 - Focus strictly on ${config.type} objectives.
                 - Use professional Markdown.
-                - Flag missing data as a strategic risk.`
+                - Flag missing data as a strategic risk.
+                -STRICT NEGATIVE CONSTRAINT: Do not include "Next Steps", "Implementation Plans", or "Roadmaps".
+                End the document with a high-level summary of findings.`
             }],
             temperature: 0.3
         })
