@@ -5,6 +5,27 @@ import { getAgenticContextString } from '../modules/agentic-bg.js';
 import { getEmbeddings } from './vision-agent.js';
 import { fetchWithRetry } from './utils.js';
 
+// 🚀 NEW: Short-term memory (Last 2 turns)
+let chatContextBuffer = []; 
+
+/**
+ * HELPER: Updates the context buffer, keeping only the last 2 items.
+ */
+function updateChatContext(role, content) {
+    chatContextBuffer.push({ role, content });
+    if (chatContextBuffer.length > 4) { // 2 User + 2 Bot turns = 4 total items
+        chatContextBuffer.shift();
+        chatContextBuffer.shift();
+    }
+}
+
+/**
+ * EXPORT: Allows main.js to clear memory when the user clears the chat
+ */
+export function clearAgentContext() {
+    chatContextBuffer = [];
+}
+
 const MISTRAL_API_KEY = import.meta.env.VITE_MISTRAL_API_KEY; 
 const API_URL = "https://api.mistral.ai/v1/chat/completions";
 
@@ -274,6 +295,12 @@ async function* streamStrategistWithContext(userQuestion, sqlData, docText, glob
     const persona = getActivePersona();
     const backgroundContext = getAgenticContextString();
 
+    // 🚀 NEW: Format the history into a string
+    const historyString = chatContextBuffer.map(turn => 
+        `${turn.role.toUpperCase()}: ${turn.content}`
+    ).join('\n\n');
+
+
     const response = await fetchWithRetry(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
@@ -292,6 +319,9 @@ async function* streamStrategistWithContext(userQuestion, sqlData, docText, glob
                     YData offers several workforce profiles for various data analysis and business intelligence tasks for industries like E-Commerce, D2C, marketing, and other data-driven industries.
                     YData uses specialized trained and fine tuned LLMs for these tasks.
 
+                    --- CONVERSATIONAL MEMORY (LAST 2 TURNS) ---
+                    ${historyString || "No previous context."}
+
                     --- PERSONA SETTINGS ---
                     Role: ${persona.name}
                     Instructions: ${persona.instructions}
@@ -306,9 +336,13 @@ async function* streamStrategistWithContext(userQuestion, sqlData, docText, glob
                     
                     --- TASK ---
                     Answer the user's question using the provided context.
+                    - Focus strictly on data interpretation, implications, and risks. 
+                    - Avoid generic business advice or project plans. 
+                    - Do not use emojis or "Next Steps" sections unless specifically requested by the user.
                     - If explaining a dataset, use the GLOBAL PROFILE for statistics (do not rely on the Sample SQL rows for stats).
                     - If info is in the DOCUMENT SNIPPETS, clearly cite the filename.
                     - Give the strategic insights based primarily for India and Indian organizations unless stated otherwise.
+                    - Use the memory to understand follow-up questions or maintain consistency in your advice.
                     - Use markdown. Highlight key numbers in bold.
                     
                     --- VISUALIZATION CAPABILITY ---
@@ -340,6 +374,7 @@ async function* streamStrategistWithContext(userQuestion, sqlData, docText, glob
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let finalResponseText = "";
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -355,6 +390,10 @@ async function* streamStrategistWithContext(userQuestion, sqlData, docText, glob
             }
         }
     }
+
+    // 🚀 NEW: Once the stream is done, save this turn to memory
+    updateChatContext("user", userQuestion);
+    updateChatContext("assistant", finalResponseText);
 }
 
 /**
@@ -741,10 +780,13 @@ export async function* streamDeepResearch(activeTable) {
                     3. # CHAPTER 2: STRATEGIC GROWTH VECTORS (Detailed ROI and market analysis)
                     4. # CHAPTER 3: INDUSTRY-SPECIFIC COMPETITIVE MOATS (Tailored specifically to the Company Context)
                     5. # CHAPTER 4: RISK MITIGATION & COMPLIANCE (Addressing UAE/USA/Canada regulatory needs)
-                    6. # CHAPTER 5: TACTICAL 12-MONTH ROADMAP (Step-by-step execution)
+                    6. # CHAPTER 5: CONCLUDING STRATEGIC SYNTHESIS (Step-by-step)
 
                     INSTRUCTION: Be extremely verbose. Provide detailed commentary for every observation. 
-                    Use sophisticated Markdown, tables, and bold highlights.` 
+                    Use sophisticated Markdown, tables, and bold highlights.
+                    
+                    STRICT RULE: Do not include "Next Steps", "Tactical Roadmaps", or motivational closing statements (e.g., "The time to act is now").
+                    End the report strictly with the final analytical insight.` 
                 },
                 { role: "user", content: "Begin the 1000-word Strategic Synthesis." }
             ],
@@ -813,6 +855,38 @@ export async function getAiSchemaMapping(targetName, sourceName) {
             }],
             response_format: { type: "json_object" },
             temperature: 0
+        })
+    });
+
+    const result = await response.json();
+    return JSON.parse(result.choices[0].message.content);
+}
+
+/**
+ * PARETO ARCHITECT: Automatically selects columns based on Persona.
+ */
+export async function getAiParetoPlan(tableName, personaName) {
+    const schema = await getTableSchema(tableName);
+
+    const response = await fetchWithRetry(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${MISTRAL_API_KEY}` },
+        body: JSON.stringify({
+            model: "mistral-small-latest",
+            messages: [{
+                role: "system",
+                content: `You are a Data Strategist. 
+                SCHEMA: ${schema}
+                ACTIVE PERSONA: ${personaName}
+
+                TASK:
+                Based on the Persona, identify the most critical 80/20 (Pareto) check to run.
+                - Select a 'Dimension' (categorical column like City, Product, Lead_Source).
+                - Select a 'Metric' (numerical column like Revenue, Cost, Quantity).
+                
+                Return ONLY JSON: {"dimension": "col_name", "metric": "col_name", "reasoning": "Why this matters for this persona"}`
+            }],
+            response_format: { type: "json_object" }
         })
     });
 
