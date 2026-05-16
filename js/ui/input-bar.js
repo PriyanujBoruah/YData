@@ -59,6 +59,7 @@ export function initMenus() {
     const toolMap = {
         'menu-viz': 'open-viz',
         'menu-pivot': 'open-pivot',
+        'menu-pareto': 'trigger-auto-pareto',
         'menu-narrator': 'trigger-narrator',
         'menu-quality': 'open-quality',
         'menu-privacy': 'open-privacy'
