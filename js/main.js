@@ -700,6 +700,10 @@ function setupEventListeners() {
         
         if(confirm("Are you sure you want to clear the chat history?")) {
             messagesContainer.innerHTML = "";
+
+            // 🚀 NEW: Wipe the AI's memory buffer
+            import('./core/ai-agent.js').then(mod => mod.clearAgentContext());
+
             
             // Re-show the intro screen when the chat is emptied
             const introScreen = document.getElementById('intro-screen');
@@ -1221,33 +1225,62 @@ function setupEventListeners() {
         }
     });
 
+    // Open the Modal
+    window.addEventListener('trigger-auto-pareto', () => {
+        import('./modules/pareto-engine.js').then(mod => mod.openParetoModal());
+    });
+
+    // Run the Logic
+    document.getElementById('btn-run-pareto-auto').addEventListener('click', () => {
+        import('./modules/pareto-engine.js').then(mod => mod.runAutonomousAudit(state.activeTable));
+    });
+
+    // Send to Chat
+    document.getElementById('btn-pareto-to-chat').addEventListener('click', () => {
+        import('./modules/pareto-engine.js').then(mod => mod.sendToChat());
+    });
+
+    // Reset
+    document.getElementById('btn-pareto-reset').addEventListener('click', () => {
+        import('./modules/pareto-engine.js').then(mod => mod.openParetoModal());
+    });
+
+
 }
 
 
 /**
  * 3. CHAT LOGIC (2-Stage Agentic AI)
  */
-async function handleSendMessage() {
-    const text = userPrompt.value.trim();
+/**
+ * REFINED CHAT HANDLER
+ * @param {string} overridePrompt - If provided, uses this text instead of the textarea value.
+ * @param {boolean} isSilent - If true, skips adding the User's message bubble to the UI.
+ */
+async function handleSendMessage(overridePrompt = null, isSilent = false) {
+    // 🚀 Logic: Use the automated prompt if provided, otherwise grab from the input box
+    const text = overridePrompt || userPrompt.value.trim();
+    
+    // Safety check: Don't proceed if there is no text, DB isn't ready, or no data is selected
     if (!text || !state.isDatabaseReady || !state.activeTable) return;
 
-    // Hide the intro screen and proactive insights immediately on first chat
+    // Hide the intro screen and proactive insights immediately on first interaction
     const introScreen = document.getElementById('intro-screen');
     const proactiveContainer = document.getElementById('proactive-insights-container');
     
     if (introScreen) introScreen.style.display = 'none';
     if (proactiveContainer) proactiveContainer.classList.add('hidden');
 
-    // 1. Add User Message
-    addUserMessage(text);
+    // 1. Only add User Message bubble if NOT a silent/automated trigger
+    if (!isSilent) {
+        addUserMessage(text);
+        userPrompt.value = "";
+        userPrompt.style.height = 'auto';
+        btnSend.classList.add('hidden');
+    }
     
-    // 2. Lock UI & Show Shimmer Effect
+    // 2. Lock UI & Show Shimmer Effect (Thinking state)
     const inputPill = document.getElementById('input-pill');
-    userPrompt.value = "";
-    userPrompt.style.height = 'auto';
-    btnSend.classList.add('hidden');
-    
-    // Add thinking state
     userPrompt.disabled = true;
     userPrompt.placeholder = "Krata is thinking...";
     inputPill.classList.add('input-pill-thinking');
@@ -1255,7 +1288,7 @@ async function handleSendMessage() {
     // 3. Create Bot Message Shell
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message bot-message';
-    msgDiv.dataset.prompt = text; // Save prompt for regeneration
+    msgDiv.dataset.prompt = text; // Save prompt for potential regeneration
 
     msgDiv.innerHTML = `
         <div class="bot-avatar">
@@ -1269,9 +1302,10 @@ async function handleSendMessage() {
                     <code class="sql-code"></code>
                 </div>
             </details>
-            <div class="response-text"></div>
+            <!-- Add 'prose' class for consistent report styling -->
+            <div class="response-text prose max-w-none"></div>
             
-            <!-- Chat Action Bar (Hidden during generation) -->
+            <!-- Chat Action Bar (Initially hidden) -->
             <div class="chat-action-bar hidden">
                 <button class="chat-action-btn" title="Copy Response" onclick="copyChatResponse(this)">
                     <i data-lucide="copy"></i>
@@ -1299,53 +1333,52 @@ async function handleSendMessage() {
     const textEl = msgDiv.querySelector('.response-text');
     const sqlContainer = msgDiv.querySelector('.sql-debug');
     const sqlCodeEl = msgDiv.querySelector('.sql-code');
+    const actionBar = msgDiv.querySelector('.chat-action-bar');
 
     let fullResponse = "";
     try {
+        // 4. Call Agent Stream with the resolved text
         const stream = askAgentStream(text, state.activeTable);
         
         for await (const chunk of stream) {
             if (chunk.type === 'status') {
-                statusEl.innerText = chunk.content;
+                if (statusEl) statusEl.innerText = chunk.content;
             } else if (chunk.type === 'sql') {
-                sqlContainer.classList.remove('hidden');
-                sqlCodeEl.innerText = chunk.content;
+                if (sqlContainer) sqlContainer.classList.remove('hidden');
+                if (sqlCodeEl) sqlCodeEl.innerText = chunk.content;
             } else if (chunk.type === 'text') {
-                statusEl.style.display = 'none'; 
+                if (statusEl) statusEl.style.display = 'none'; // Hide status when text starts
                 fullResponse += chunk.content;
-                // During streaming, render markdown to HTML
                 textEl.innerHTML = marked.parse(fullResponse); 
                 scrollToBottom();
             } else if (chunk.type === 'modification_complete') {
-                // Refresh any open data views
-                if (!document.getElementById('spreadsheet-view').classList.contains('view-hidden')) {
-                    openSpreadsheet(state.activeTable); // Reload grid
+                // Refresh data views if AI edited the database
+                const spreadsheetView = document.getElementById('spreadsheet-view');
+                if (spreadsheetView && !spreadsheetView.classList.contains('view-hidden')) {
+                    const { openSpreadsheet } = await import('./modules/spreadsheet.js');
+                    await openSpreadsheet(state.activeTable);
                 }
-                console.log("Database modified. Views updated.");
             } else if (chunk.type === 'error') {
-                textEl.innerHTML = `<div class="error-box text-red-500 p-3 bg-red-50 rounded-lg border border-red-100">
-                    <strong>Engine Error:</strong> ${chunk.content}
-                </div>`;
+                throw new Error(chunk.content); // Trigger catch block
             }
         }
 
         // ==========================================
-        // FINAL HYDRATION (AFTER STREAM ENDS)
+        // FINAL HYDRATION (POST-STREAM)
         // ==========================================
         
-        // 1. Plotly Charts (Handles [CHART_START] JSON blocks)
+        // Handle custom [CHART_START] JSON blocks
         textEl.innerHTML = processInlineCharts(textEl.innerHTML, textEl);
         
-        // 2. Mermaid Charts (Transforms markdown mermaid blocks to SVGs)
-        // Note: This must be awaited as mermaid rendering is async
+        // Handle Markdown Mermaid blocks (Must be awaited)
         await processMermaidCharts(textEl); 
         
-        // 3. Final icon rendering and scroll
         lucide.createIcons();
         scrollToBottom();
 
     } catch (err) {
         console.error("Agent Error:", err);
+        // Clean, polite B2B error masking
         textEl.innerHTML = `
             <div class="p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-600 text-sm flex items-center gap-2">
                 <i data-lucide="info" class="w-4 h-4 text-gray-400"></i>
@@ -1354,16 +1387,17 @@ async function handleSendMessage() {
         `;
         if (window.lucide) lucide.createIcons();
     } finally {
-        // 4. Unlock UI & Remove Shimmer
+        // 5. Unlock UI & Remove Shimmer Effect
         inputPill.classList.remove('input-pill-thinking');
         userPrompt.disabled = false;
         userPrompt.placeholder = `Ask about ${state.activeTable}...`;
         
-        // 5. Show the action bar
-        const actionBar = msgDiv.querySelector('.chat-action-bar');
-        if(actionBar) actionBar.classList.remove('hidden');
+        // Reveal the action bar
+        if (actionBar) actionBar.classList.remove('hidden');
         
-        // Auto-focus back on the input
+        lucide.createIcons();
+        
+        // Auto-focus back on the input for the next question
         setTimeout(() => userPrompt.focus(), 50);
     }
 }
